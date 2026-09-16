@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
@@ -28,6 +29,22 @@ async function runApi(context, options) {
     return { status: response.status, body: await response.json(), headers: response.headers }
   }
 }
+
+test('startup reports an occupied port without claiming success or masking the listen error', async context => {
+  const occupied = createTodoApp().listen(0, '127.0.0.1')
+  await once(occupied, 'listening')
+  context.after(() => new Promise(resolve => occupied.close(resolve)))
+  const result = spawnSync(process.execPath, [fileURLToPath(new URL('./server.js', import.meta.url))], {
+    env: { ...process.env, HOST: '127.0.0.1', PORT: String(occupied.address().port) },
+    encoding: 'utf8',
+    timeout: 5000,
+  })
+  assert.equal(result.error, undefined)
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /EADDRINUSE/)
+  assert.doesNotMatch(result.stderr, /TypeError/)
+  assert.doesNotMatch(result.stdout, /Todo API listening/)
+})
 
 test('the shared OpenAPI contract is valid', async () => {
   const document = await SwaggerParser.validate(fileURLToPath(new URL('../contracts/todo-api.yaml', import.meta.url)))

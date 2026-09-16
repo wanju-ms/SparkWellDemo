@@ -73,7 +73,8 @@ if (import.meta.main) {
   }
   const app = createTodoApp()
   const monitor = createExpirationMonitor(app.locals.todoService)
-  const server = app.listen(port, host, () => {
+  const server = app.listen(port, host)
+  server.once('listening', () => {
     void monitor.start()
     console.log(`Todo API listening at http://${host}:${server.address().port}`)
   })
