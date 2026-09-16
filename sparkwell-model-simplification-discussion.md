@@ -1,6 +1,5 @@
 # SparkWell：关于 Product Spark、Requirement、Aspect、Constraint 与 Collaboration 的进一步收敛
 
-> 日期：2026-09-12
 >
 > 本文总结今天关于 SparkWell 模型简化的一轮讨论。重点不是给出最终定案，而是记录我们如何从原来的 **Product Spark → Solution Spark → Implementation** 三层思路，重新审视 Product Spark 和 Requirement 是否真的需要成为一等模型，并进一步讨论了 **Constraint、Aspect、Collaboration、Resolved Context** 等概念。
 >
