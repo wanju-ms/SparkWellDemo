@@ -1,0 +1,22 @@
+schema-version: 1
+implementation-id: api-server
+artifacts:
+  - path: src/api/expiration-monitor.js
+    derived-from:
+      - todo-expiration-monitor
+      - todo-expiration-sync
+  - path: src/api/server.js
+    derived-from:
+      - todo-expiration-monitor
+      - todo-service
+  - path: src/api/server.test.js
+    derived-from:
+      - todo-expiration-monitor
+      - todo-expiration-sync
+      - todo-item
+      - todo-service
+  - path: src/api/todo-service.js
+    derived-from:
+      - todo-expiration-sync
+      - todo-item
+      - todo-service

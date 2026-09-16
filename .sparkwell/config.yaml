@@ -1,0 +1,98 @@
+schema-version: 1
+
+implementations:
+  api-contract:
+    source-root: src/contracts
+    stack: openapi
+    guidance: |
+      Generate and maintain the shared HTTP interface for the selected services.
+      Define routes, request and response schemas, serialization, and errors in
+      OpenAPI, preserving the Spark-defined capabilities and data rules. These
+      documents are the shared contract for the server and both platform clients.
+      Place data schemas in OpenAPI components.
+
+  api-server:
+    source-root: src/api
+    stack: nodejs
+    depends-on: [api-contract]
+    guidance: |
+      Implement selected services, server-side data representations, and
+      validation in Node.js using the OpenAPI outputs from api-contract. Enforce
+      the Spark-defined data rules and expose the same operations to both clients.
+      Implement todo-expiration-monitor as an independently startable and
+      stoppable in-process worker using todo-service's internal capabilities,
+      not as HTTP endpoints or another data store.
+      For this demo, keep authoritative data in server-process memory shared by
+      both clients. Start empty when the server starts, retain data across client
+      reloads and restarts while the server runs, and clear it on server restart.
+      Report write success only after an atomic in-memory update. This demo
+      provider does not fulfill the model's durable persistence guarantee;
+      durable storage remains deferred.
+
+  web-client:
+    source-root: src/web/client
+    stack: typescript
+    depends-on: [api-contract]
+    guidance: |
+      Generate typed TypeScript HTTP access code from api-contract outputs for
+      use by the React UI. Cover the declared operations and error responses.
+      Use a configurable API base URL and call the Node.js server for data reads
+      and writes rather than substituting client-local storage or mock results.
+      Produce data types through the existing schema generator and maintain
+      validation in the existing client module.
+
+  ios-client:
+    source-root: src/ios/client
+    stack: swift
+    depends-on: [api-contract]
+    guidance: |
+      Implement the existing TodoClient package with Swift HTTP access code,
+      Codable data models, and validation based on api-contract.
+      Use URLSession with async/await and cover the declared
+      operations and error responses. Use a configurable API base URL so web and
+      iOS clients can share the same Node.js server and its data.
+
+  web-ui:
+    source-root: src/web
+    stack: react
+    depends-on: [web-client]
+    guidance: |
+      Implement the selected UI Sparks as a React application, consuming HTTP
+      access code, data types, and validation from web-client. Preserve the
+      modeled UI behavior, modal editing, and loading and save outcomes.
+
+  ios-ui:
+    source-root: src/ios
+    stack: swiftui
+    depends-on: [ios-client]
+    guidance: |
+      Implement the selected UI Sparks as a native iOS app using SwiftUI and
+      ios-client for HTTP access, data models, and validation. Preserve the
+      modeled behavior and loading and save outcomes, using native modal
+      presentation for the editor.
+
+bindings:
+  - match: [{id: todo-service}]
+    implementation: api-contract
+  - match: [{id: todo-item}]
+    implementation: api-contract
+  - match: [{id: todo-service}]
+    implementation: api-server
+  - match: [{id: todo-item}]
+    implementation: api-server
+  - match: [{id: todo-expiration-monitor}]
+    implementation: api-server
+  - id: service-clients
+    match: [{id: todo-service}]
+    implementation: web-client
+  - match: [{id: todo-item}]
+    implementation: web-client
+  - id: ios-service-clients
+    match: [{id: todo-service}]
+    implementation: ios-client
+  - match: [{id: todo-item}]
+    implementation: ios-client
+  - match: [{spark-type: ui}]
+    implementation: web-ui
+  - match: [{spark-type: ui}]
+    implementation: ios-ui

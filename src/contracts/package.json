@@ -1,0 +1,12 @@
+{
+  "name": "todo-api-contract",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate:web": "openapi-typescript todo-api.yaml -o ../web/client/schema.d.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0",
+    "typescript": "~5.9.3"
+  }
+}

@@ -1,0 +1,21 @@
+schema-version: 1
+implementation-id: web-client
+artifacts:
+  - path: src/web/client/schema.d.ts
+    derived-from:
+      - todo-expiration-sync
+      - todo-item
+      - todo-service
+  - path: src/web/client/todo-client.test.ts
+    derived-from:
+      - todo-expiration-sync
+      - todo-item
+      - todo-service
+  - path: src/web/client/todo-client.ts
+    derived-from:
+      - todo-expiration-sync
+      - todo-item
+      - todo-service
+  - path: src/web/client/todo-item.ts
+    derived-from:
+      - todo-item

@@ -1,0 +1,44 @@
+schema-version: 1
+implementation-id: web-ui
+artifacts:
+  - path: src/web/index.html
+    derived-from:
+      - todo-app
+  - path: src/web/src/App.css
+    derived-from:
+      - todo-app
+      - todo-editor
+  - path: src/web/src/App.tsx
+    derived-from:
+      - todo-app
+      - todo-expiration-sync
+      - todo-item
+      - todo-service
+  - path: src/web/src/CreatedAt.tsx
+    derived-from:
+      - todo-app
+      - todo-editor
+  - path: src/web/src/TodoEditor.tsx
+    derived-from:
+      - todo-editor
+      - todo-expiration-sync
+      - todo-item
+  - path: src/web/src/index.css
+    derived-from:
+      - todo-app
+      - todo-editor
+  - path: src/web/src/todo-poller.test.mjs
+    derived-from:
+      - todo-app
+      - todo-expiration-sync
+  - path: src/web/src/todo-poller.ts
+    derived-from:
+      - todo-app
+      - todo-expiration-sync
+  - path: src/web/tests/todo.spec.ts
+    derived-from:
+      - todo-app
+      - todo-editor
+      - todo-expiration-sync
+      - todo-item
+      - todo-service

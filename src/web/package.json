@@ -1,0 +1,32 @@
+{
+  "name": "web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "generate:client": "npm --prefix ../contracts run generate:web",
+    "build": "npm run generate:client && tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "test": "node --test client/*.test.ts src/*.test.mjs",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5.2.0",
+    "lucide-react": "^0.468.0",
+    "openapi-fetch": "^0.15.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "oxlint": "^1.79.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.2"
+  }
+}

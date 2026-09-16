@@ -1,0 +1,219 @@
+openapi: 3.0.3
+info:
+  title: Todo Service
+  version: 1.0.0
+  description: |
+    Shared interface for the web and iOS apps. The demo server owns an in-memory
+    collection that starts empty and is discarded on server restart. Client
+    restarts do not discard server data. Durable storage is deferred.
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: Todos
+paths:
+  /todos:
+    get:
+      operationId: listTodos
+      tags: [Todos]
+      summary: List all saved Todos
+      responses:
+        '200':
+          description: The current collection, including an empty array when no records exist.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Todo'
+        '500':
+          $ref: '#/components/responses/ServiceError'
+    post:
+      operationId: createTodo
+      tags: [Todos]
+      summary: Create a Todo with a new stable identity
+      requestBody:
+        $ref: '#/components/requestBodies/TodoInput'
+      responses:
+        '201':
+          description: The complete Todo after an atomic save.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '400':
+          $ref: '#/components/responses/RequestError'
+        '413':
+          $ref: '#/components/responses/RequestError'
+        '415':
+          $ref: '#/components/responses/RequestError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServiceError'
+  /todos/{id}:
+    put:
+      operationId: updateTodo
+      tags: [Todos]
+      summary: Atomically replace the business fields of an existing Todo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The stable opaque ID returned by the service.
+          schema:
+            type: string
+            minLength: 1
+      requestBody:
+        $ref: '#/components/requestBodies/TodoUpdate'
+      responses:
+        '200':
+          description: The complete saved Todo with its identity and creation time unchanged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '400':
+          $ref: '#/components/responses/RequestError'
+        '404':
+          description: No Todo has this ID. An update never creates a record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: The current Todo is overdue; manual status edits were not applied. Retry deadline/content edits without status.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiError'
+                  - type: object
+                    required: [current]
+        '413':
+          $ref: '#/components/responses/RequestError'
+        '415':
+          $ref: '#/components/responses/RequestError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServiceError'
+components:
+  schemas:
+    Task:
+      type: string
+      description: Must contain non-whitespace text and at most 300 Unicode grapheme clusters. Never silently truncated.
+      x-max-grapheme-length: 300
+    Description:
+      type: string
+      description: May be empty; at most 1000 Unicode grapheme clusters. Never silently truncated.
+      x-max-grapheme-length: 1000
+    TodoStatus:
+      type: string
+      enum: [incomplete, completed, overdue]
+      description: Overdue is system-managed. Only incomplete Todos with server time strictly after dueAt become overdue; completed Todos are exempt.
+    ManualTodoStatus:
+      type: string
+      enum: [incomplete, completed]
+      default: incomplete
+    DueAt:
+      type: string
+      format: date-time
+      nullable: true
+      description: Editable deadline as an RFC 3339 timestamp, returned in UTC. Null means no deadline; past deadlines are valid.
+    TodoInput:
+      type: object
+      additionalProperties: false
+      required: [task, description, status]
+      properties:
+        task:
+          $ref: '#/components/schemas/Task'
+        description:
+          $ref: '#/components/schemas/Description'
+        status:
+          $ref: '#/components/schemas/ManualTodoStatus'
+        dueAt:
+          $ref: '#/components/schemas/DueAt'
+    TodoUpdate:
+      type: object
+      additionalProperties: false
+      required: [task, description]
+      description: Omitting dueAt preserves it; null clears it. Omitting status preserves the current state subject to system transitions. Overdue records can recover to incomplete only by saving a changed deadline at or after server time, or clearing it.
+      properties:
+        task:
+          $ref: '#/components/schemas/Task'
+        description:
+          $ref: '#/components/schemas/Description'
+        status:
+          $ref: '#/components/schemas/ManualTodoStatus'
+        dueAt:
+          $ref: '#/components/schemas/DueAt'
+    Todo:
+      type: object
+      additionalProperties: false
+      required: [id, task, description, status, createdAt, dueAt]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          description: Unique within the collection, allocated on create, unchanged by edits.
+        task:
+          $ref: '#/components/schemas/Task'
+        description:
+          $ref: '#/components/schemas/Description'
+        status:
+          $ref: '#/components/schemas/TodoStatus'
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC time of the first successful creation, assigned by the server clock and serialized as RFC 3339. Never changes on update or load; rejected in client input.
+        dueAt:
+          $ref: '#/components/schemas/DueAt'
+    ApiError:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [validation_error, not_found, status_conflict, invalid_json, unsupported_media_type, payload_too_large, service_error]
+        message:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+        current:
+          $ref: '#/components/schemas/Todo'
+  requestBodies:
+    TodoInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TodoInput'
+    TodoUpdate:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TodoUpdate'
+  responses:
+    RequestError:
+      description: Malformed JSON, unsupported content type, or a request exceeding the transport size limit.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    ValidationError:
+      description: Invalid fields. Saved data is unchanged.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    ServiceError:
+      description: The operation failed. A failed write does not partially change saved data.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'

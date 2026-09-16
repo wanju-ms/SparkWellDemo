@@ -1,0 +1,30 @@
+schema-version: 1
+implementation-id: ios-ui
+artifacts:
+  - path: src/ios/TodoApp/ContentView.swift
+    derived-from:
+      - todo-app
+      - todo-expiration-sync
+      - todo-item
+  - path: src/ios/TodoApp/CreatedAtView.swift
+    derived-from:
+      - todo-app
+      - todo-editor
+  - path: src/ios/TodoApp/TodoAppModel.swift
+    derived-from:
+      - todo-app
+      - todo-expiration-sync
+      - todo-item
+      - todo-service
+  - path: src/ios/TodoApp/TodoEditorView.swift
+    derived-from:
+      - todo-editor
+      - todo-expiration-sync
+      - todo-item
+  - path: src/ios/TodoAppUITests/TodoAppUITests.swift
+    derived-from:
+      - todo-app
+      - todo-editor
+      - todo-expiration-sync
+      - todo-item
+      - todo-service
