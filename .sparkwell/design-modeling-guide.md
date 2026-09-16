@@ -191,18 +191,19 @@ Data Sparks for their data semantics and rules.
 
 ## Organize Artifact Bodies
 
-Write titles, descriptions, and bodies in plain, conversational language for
-people reviewing the product and its design. Prefer short active sentences that
-name who does what and when. Use familiar words when equally precise; keep
-technical terms when needed and explain them briefly. Prefer headings such as
-"Saving" to "Submission Lifecycle", and direct sentences to repeated labels like
-"Ownership:" or "Editing Behavior:".
+Write titles, descriptions, and bodies as a brief, plain explanation to a teammate.
+Use short active sentences and common words; give each sentence one main point and make clear who does what and when.
+Use direct verbs rather than abstract phrases, and avoid formal or academic wording.
+Keep technical terms and established names when needed for accuracy; explain unfamiliar terms briefly.
+Use simple headings such as "Saving", not "Submission Lifecycle", and avoid repeated labels such as "Ownership:".
 
-Shorten wording, not meaning. Remove filler and generic assurances that add no
-design information. Preserve who does what and each distinct rule, condition,
-limit and unit, state change, failure outcome, scope boundary, and unresolved
-choice, including restrictions such as "only" and "until". Keep requirements,
-recommendations, and open questions distinct.
+Shorten wording, not meaning.
+Remove filler, repeated facts, generic assurances, and explanations of common engineering knowledge.
+Preserve every distinct rule, condition, limit and unit, state change, failure outcome, scope boundary, and unresolved choice, including restrictions such as "only" and "until".
+Keep requirements, recommendations, and open questions distinct.
+Before finishing, simplify the prose once more and check that no design fact or condition was lost.
+
+**Wording example:** Write "If saving succeeds, close the modal and clear the draft" instead of "A successful save outcome closes the modal and clears the draft".
 
 Organize multi-paragraph bodies covering distinct topics under concise `##`
 headings. Use `###` and `####` only for meaningful subdivisions, without requiring
@@ -215,6 +216,11 @@ one meaningful point per item. Use numbered lists when sequence matters. Keep
 short paragraphs for a single point or a connected explanation, and tables for
 structured fields or comparisons. Do not repeat the same content in prose and
 lists, or add detail merely to fill list items.
+
+Use semantic line breaks for prose: keep each complete sentence on its own source line instead of wrapping at a fixed column width.
+Keep continuation sentences indented within their list item, and use blank lines only for paragraph boundaries.
+Use editor soft wrapping for display; preserve line breaks in unchanged text rather than reflowing surrounding paragraphs or whole files.
+Leave YAML, Markdown tables, and fenced code or diagrams in their required layout.
 
 For Logic Sparks, use Mermaid flowcharts for decisions or data flow and state
 diagrams for state changes when they help. Keep simple logic in prose and diagrams
