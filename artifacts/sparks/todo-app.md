@@ -13,7 +13,7 @@ uses: [todo-item, todo-service]
 ## Todos and Loading
 
 - Display each [Todo Item](todo-item.md)'s task, description, and server-reported status, with a
-  New action and an Edit action for each item.
+  New action, plus Edit and Delete actions for each item.
 - Show read-only `createdAt` and `dueAt` columns in each Todo row without changing
   list order. The list and editor label them "Created at" and "Due at" and use
   absolute dates with hours and minutes in the device's current locale and time
@@ -34,12 +34,26 @@ uses: [todo-item, todo-service]
 
 1. New opens [Todo Editor](todo-editor.md) in creation mode; Edit supplies the selected Todo in editing mode.
 2. When the editor submits validated input, call `create` with its editable fields or `update` with the selected ID and those fields according to the service contract. Draft changes and pending writes do not optimistically alter the list.
-3. On success, insert the returned Todo or replace the item with the matching ID,
+3. On success accepted by the synchronization flow, insert the returned Todo or replace the item with the matching ID,
    then report success to the editor. The service result supplies the displayed
    values; a draft is not a saved record.
 4. On failure, pass the error to the editor without applying requested edits. If the response includes a current record for a status conflict, apply it through the synchronization flow; a later submission follows the same save flow.
 
 Canceling or dismissing the editor causes no user write or draft-based list
-update. Apply polling, save, and conflict results using
+update. Apply polling, save, deletion, and conflict results using
 [Todo Expiration Sync](../collaborations/todo-expiration-sync.md), keeping the
 editor's saved status separate from its working input.
+
+## Deleting
+
+- Delete one saved Todo at a time, in any status.
+  Ask for confirmation and show the selected task name.
+  Canceling confirmation sends no request and leaves the list unchanged.
+- Keep the selected ID and deletion progress in the App.
+  After confirmation, call [Todo Service](todo-service.md)'s `delete` with that ID.
+- While deletion is pending, show progress and prevent repeated deletion or editing of that item.
+  Do not remove the item before deletion is confirmed.
+- On success, remove the item by ID and show the empty list if none remain.
+- On failure, show an error and allow retry or cancel.
+  Keep the last confirmed list state.
+  A network error may leave the result unknown; resolve it through retry or refresh.

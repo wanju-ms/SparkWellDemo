@@ -44,5 +44,8 @@ uses: [todo-item]
 - Consume current-status refreshes and status conflicts using
   [Todo Expiration Sync](../collaborations/todo-expiration-sync.md); preserve
   unsaved input while responding to changes in which actions are permitted.
+- If the App confirms the edited record is deleted, show a notice and disable Save, including retries.
+  Keep the draft available for viewing or copying until the user closes the modal.
+  Do not turn it into a new Todo.
 - Outside a pending save, Cancel or any other dismissal discards the draft
   without submitting it.

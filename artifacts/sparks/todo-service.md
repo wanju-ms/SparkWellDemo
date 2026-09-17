@@ -25,8 +25,9 @@ Inputs and returned records follow [Todo Item](todo-item.md).
 | `list` | None | All saved Todo records | Reconcile overdue state before reading the collection, including stored `createdAt` and `dueAt`. Return an empty collection when no records exist; report an error if reconciliation or loading fails. |
 | `create` | `task`, `description`, `status`; optional `dueAt` | The complete saved Todo | Allocate an ID following Todo Item's identity rules, assign `createdAt` from the server clock, and resolve the input's status using the deadline rules before saving. |
 | `update` | `id`, `task`, `description`; optional `status` and `dueAt` | The complete saved Todo | Reconcile the current record, apply permitted edits, and resolve its resulting status while retaining `createdAt`. A missing target returns a not-found error, not a newly created record. |
+| `delete` | `id` | Success confirmation | Remove the record in any status. Return success only after removal, or if the ID is already absent. Report storage failures. |
 
-- Validate write inputs against Todo Item's rules even when the caller already
+- Validate create and update inputs against Todo Item's rules even when the caller already
   validated them. Invalid input returns a validation error without committing
   any requested edits. Reject client-supplied `createdAt` and `status: overdue`.
 - Creation with omitted `dueAt` uses Todo Item's default. On update, omitted
@@ -36,9 +37,11 @@ Inputs and returned records follow [Todo Item](todo-item.md).
   status, reject the edits with a status-conflict error containing the latest
   complete record. This also applies to a request prepared before the deadline.
 - Recheck the latest record and service clock when committing any status change.
-  Client writes and background transitions are atomic per Todo. A failed write
+  Client writes and background transitions are serialized and atomic per Todo. A failed write
   leaves no partial changes from that operation; independently committed system
   transitions are not rolled back by a rejected or failed client request.
+- Deletion removes the record from later reads, with no undo or recycle bin.
+  Updates and background checks cannot recreate it.
 
 ## Internal Checks
 
