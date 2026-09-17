@@ -385,6 +385,174 @@ final class TodoAppUITests: XCTestCase {
         ] as NSDictionary)
     }
 
+    func testDeletionConfirmsCancelsAndRemovesEveryStatus() async throws {
+        let records: [[String: Any]] = ["incomplete", "completed", "overdue"].map { status in
+            ["id": "delete-\(status)", "task": "Delete \(status)", "description": "Only this record",
+             "status": status, "createdAt": "2026-09-15T09:00:00Z",
+             "dueAt": status == "overdue" ? "2020-01-01T00:00:00Z" : NSNull()]
+        }
+        try await control("reset", body: ["todos": records])
+        let app = application()
+        app.launch()
+        for record in records {
+            let task = try XCTUnwrap(record["task"] as? String)
+            let button = app.buttons["Delete \(task)"]
+            XCTAssertTrue(button.waitForExistence(timeout: 10))
+            button.tap()
+            let confirmation = app.alerts["Delete todo?"]
+            XCTAssertTrue(confirmation.waitForExistence(timeout: 5))
+            XCTAssertTrue(confirmation.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", task)).firstMatch.exists)
+            confirmation.buttons["Cancel"].tap()
+            XCTAssertTrue(button.exists)
+            button.tap()
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "Delete confirmation \(task)"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+            confirmation.buttons["Delete todo"].tap()
+            XCTAssertTrue(button.waitForNonExistence(timeout: 10))
+        }
+        XCTAssertTrue(app.staticTexts["No todos yet"].waitForExistence(timeout: 5))
+        let state = try await control("state", body: [:])
+        XCTAssertEqual((state["todos"] as? [Any])?.count, 0)
+        let writes = try XCTUnwrap(state["writes"] as? [[String: Any]])
+        XCTAssertEqual(writes.count, 3, "Canceling must not send a deletion")
+        XCTAssertTrue(writes.allSatisfy { ($0["method"] as? String) == "DELETE" && $0["body"] is NSNull })
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.staticTexts["No todos yet"].waitForExistence(timeout: 10))
+    }
+
+    func testDeletionWaitsAndRetriesAfterFailure() async throws {
+        try await control("reset", body: ["todos": [[
+            "id": "delete-retry", "task": "Retry deletion", "description": "",
+            "status": "incomplete", "createdAt": "2026-09-15T09:00:00Z", "dueAt": NSNull(),
+        ]]])
+        let app = application()
+        app.launch()
+        let button = app.buttons["Delete Retry deletion"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        try await control("pause", body: [:])
+        button.tap()
+        app.alerts["Delete todo?"].buttons["Delete todo"].tap()
+        _ = try await waitForState { ($0["pendingCount"] as? Int) == 1 }
+        XCTAssertFalse(button.isEnabled)
+        XCTAssertEqual(button.value as? String, "Deleting")
+        XCTAssertFalse(app.buttons["Edit Retry deletion"].isEnabled)
+        button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let pending = try await control("state", body: [:])
+        XCTAssertEqual((pending["writes"] as? [Any])?.count, 1)
+        XCTAssertEqual((pending["todos"] as? [Any])?.count, 1)
+        try await control("fail", body: [:])
+        let failure = app.alerts["Could not delete todo"]
+        XCTAssertTrue(failure.waitForExistence(timeout: 5))
+        XCTAssertTrue(failure.buttons["Cancel"].exists)
+        failure.buttons["Retry delete"].tap()
+        XCTAssertTrue(app.staticTexts["No todos yet"].waitForExistence(timeout: 10))
+        let saved = try await control("state", body: [:])
+        XCTAssertEqual((saved["writes"] as? [Any])?.count, 2)
+        XCTAssertEqual((saved["todos"] as? [Any])?.count, 0)
+    }
+
+    func testDeletionIgnoresLateSaveSuccess() async throws {
+        try await assertDeletedDraftAfterLateSave(conflict: false)
+    }
+
+    func testDeletionIgnoresLateStatusConflict() async throws {
+        try await assertDeletedDraftAfterLateSave(conflict: true)
+    }
+
+    func testDeletionNotFoundUpdatePreservesDraftAndRejectsOldPoll() async throws {
+        try await control("reset", body: ["todos": [[
+            "id": "deleted-update", "task": "Missing update", "description": "",
+            "status": "incomplete", "createdAt": "2026-09-15T09:00:00Z", "dueAt": NSNull(),
+        ]]])
+        let app = application()
+        app.launch()
+        let edit = app.buttons["Edit Missing update"]
+        XCTAssertTrue(edit.waitForExistence(timeout: 10))
+        edit.tap()
+        let description = app.descendants(matching: .any).matching(identifier: "todo-description").firstMatch
+        XCTAssertTrue(description.waitForExistence(timeout: 5))
+        description.tap()
+        description.typeText("Copy this missing draft")
+        try await control("pause-reads", body: [:])
+        _ = try await waitForState { ($0["pendingReadCount"] as? Int) == 1 }
+        try await deleteFromAnotherClient("deleted-update")
+        app.buttons["save-todo"].tap()
+        let notice = app.descendants(matching: .any).matching(identifier: "deleted-notice").firstMatch
+        XCTAssertTrue(notice.waitForExistence(timeout: 8))
+        XCTAssertFalse(app.buttons["save-todo"].isEnabled)
+        XCTAssertEqual(app.staticTexts["deleted-description"].label, "Copy this missing draft")
+        let released = try await control("release-reads", body: ["mode": "fail"])
+        let reads = try XCTUnwrap(released["reads"] as? Int)
+        _ = try await waitForState { ($0["reads"] as? Int ?? 0) > reads }
+        XCTAssertTrue(notice.exists)
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.staticTexts["No todos yet"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Edit Missing update"].exists)
+    }
+
+    private func assertDeletedDraftAfterLateSave(conflict: Bool) async throws {
+        try await control("reset", body: ["now": "2026-09-15T12:00:00Z", "todos": [[
+            "id": "late-delete", "task": "Deleted after save", "description": "",
+            "status": "incomplete", "createdAt": "2026-09-14T09:00:00Z", "dueAt": "2026-09-15T12:01:00Z",
+        ]]])
+        let app = application()
+        app.launch()
+        let edit = app.buttons["Edit Deleted after save"]
+        XCTAssertTrue(edit.waitForExistence(timeout: 10))
+        edit.tap()
+        let description = app.descendants(matching: .any).matching(identifier: "todo-description").firstMatch
+        XCTAssertTrue(description.waitForExistence(timeout: 5))
+        description.tap()
+        description.typeText("Keep this deleted draft")
+        app.segmentedControls.buttons["Completed"].tap()
+        app.switches["deadline-enabled"].coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        try await control("pause-reads", body: [:])
+        _ = try await waitForState { ($0["pendingReadCount"] as? Int) == 1 }
+        try await control("pause-write-results", body: [:])
+        if conflict { try await control("clock", body: ["now": "2026-09-15T12:02:00Z"]) }
+        app.buttons["save-todo"].tap()
+        _ = try await waitForState { ($0["pendingWriteResultCount"] as? Int) == 1 }
+        try await deleteFromAnotherClient("late-delete")
+        try await control("release-reads", body: [:])
+        let notice = app.descendants(matching: .any).matching(identifier: "deleted-notice").firstMatch
+        XCTAssertTrue(notice.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["Cancel"].isEnabled)
+        XCTAssertFalse(app.buttons["save-todo"].isEnabled)
+        XCTAssertEqual(app.staticTexts["deleted-description"].label, "Keep this deleted draft")
+        try await control("release-write-results", body: [:])
+        let settled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: app.buttons["Cancel"])
+        await fulfillment(of: [settled], timeout: 5)
+        XCTAssertTrue(notice.exists)
+        XCTAssertFalse(app.buttons["save-todo"].isEnabled)
+        XCTAssertEqual(app.staticTexts["deleted-task"].label, "Deleted after save")
+        XCTAssertEqual(app.staticTexts["deleted-description"].label, "Keep this deleted draft")
+        XCTAssertEqual(app.switches["deadline-enabled"].value as? String, "0")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = conflict ? "Deleted draft after late conflict" : "Deleted draft after late save"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.staticTexts["No todos yet"].waitForExistence(timeout: 5))
+        app.buttons["New todo"].tap()
+        let newTask = app.descendants(matching: .any).matching(identifier: "todo-task").firstMatch
+        XCTAssertTrue(newTask.waitForExistence(timeout: 5))
+        XCTAssertNotEqual(newTask.value as? String, "Deleted after save")
+        app.buttons["Cancel"].tap()
+    }
+
+    private func deleteFromAnotherClient(_ id: String) async throws {
+        let address = try XCTUnwrap(ProcessInfo.processInfo.environment["TODO_UI_TEST_API_URL"])
+        let baseURL = try XCTUnwrap(URL(string: address))
+        var request = URLRequest(url: baseURL.appending(component: "todos").appending(component: id))
+        request.httpMethod = "DELETE"
+        let (data, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 204)
+        XCTAssertTrue(data.isEmpty)
+    }
+
     private func assertPendingSave(
         in app: XCUIApplication,
         title: String,

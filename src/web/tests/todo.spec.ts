@@ -243,3 +243,183 @@ test.describe('overdue synchronization', () => {
     await expect(page.getByRole('listitem').getByRole('heading')).toHaveText('Preserved edit')
   })
 })
+
+test.describe('deletion', () => {
+  test('confirmation, cancellation, and deletion of every status use the real API', async ({ page, request }, testInfo) => {
+    const api = 'http://127.0.0.1:43100'
+    await page.goto('/')
+    for (const status of ['incomplete', 'completed', 'overdue']) {
+      const task = `Delete ${status} ${testInfo.project.name}`
+      const created = await request.post(`${api}/todos`, { data: {
+        task, description: 'Only this record is removed.', status: status === 'completed' ? 'completed' : 'incomplete',
+        dueAt: status === 'overdue' ? '2020-01-01T00:00:00Z' : null,
+      } })
+      const todo = await created.json()
+      await page.getByRole('button', { name: 'Reload todos', exact: true }).click()
+      const row = page.getByRole('listitem').filter({ has: page.getByRole('heading', { name: task, exact: true }) })
+      await row.getByRole('button', { name: `Delete ${task}`, exact: true }).click()
+      const dialog = page.getByRole('dialog', { name: 'Delete todo?' })
+      await expect(dialog).toContainText(task)
+      await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+      await expect(row).toBeVisible()
+      expect((await (await request.get(`${api}/todos`)).json()).some((entry: { id: string }) => entry.id === todo.id)).toBe(true)
+      await row.getByRole('button', { name: `Delete ${task}`, exact: true }).click()
+      await page.screenshot({ path: testInfo.outputPath(`delete-${status}.png`), fullPage: true, animations: 'disabled' })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+      await dialog.getByRole('button', { name: 'Delete todo', exact: true }).click()
+      await expect(dialog).not.toBeVisible()
+      await expect(row).toHaveCount(0)
+      expect((await request.delete(`${api}/todos/${todo.id}`)).status()).toBe(204)
+      await page.reload()
+      await expect(row).toHaveCount(0)
+    }
+  })
+
+  test('pending and failed deletion keep the record and allow a successful retry', async ({ page }) => {
+    const todo = { id: 'delete-retry', task: 'Delete only after success', description: '', status: 'incomplete', createdAt: '2026-09-15T09:00:00Z', dueAt: null }
+    let removed = false
+    let attempts = 0
+    let release!: () => void
+    const held = new Promise<void>(resolve => { release = resolve })
+    await page.route('**/todos', route => route.fulfill({ json: removed ? [] : [todo] }))
+    await page.route('**/todos/delete-retry', async route => {
+      attempts += 1
+      expect(route.request().method()).toBe('DELETE')
+      if (attempts === 1) {
+        await held
+        return route.fulfill({ status: 500, json: { code: 'service_error', message: 'Could not delete. Try again.' } })
+      }
+      removed = true
+      await route.fulfill({ status: 204 })
+    })
+    await page.goto('/')
+    await page.getByRole('button', { name: `Delete ${todo.task}`, exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Delete todo?' })
+    await dialog.getByRole('button', { name: 'Delete todo', exact: true }).click()
+    await expect(dialog.getByRole('button', { name: 'Deleting', exact: true })).toBeDisabled()
+    await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeDisabled()
+    await expect(page.getByRole('button', { name: `Edit ${todo.task}`, exact: true, includeHidden: true })).toBeDisabled()
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeVisible()
+    expect(attempts).toBe(1)
+    release()
+    await expect(dialog.getByRole('alert')).toContainText('Could not delete')
+    await expect(page.locator('.todo-row')).toHaveCount(1)
+    await dialog.getByRole('button', { name: 'Retry delete' }).click()
+    await expect(dialog).not.toBeVisible()
+    await expect(page.getByText('No todos yet', { exact: true })).toBeVisible()
+    expect(attempts).toBe(2)
+  })
+
+  test('an old poll cannot restore a confirmed deletion before the next refresh completes', async ({ page }) => {
+    const todo = { id: 'old-delete-poll', task: 'Never restore this record', description: '', status: 'incomplete', createdAt: '2026-09-15T09:00:00Z', dueAt: null }
+    let reads = 0
+    let releaseOld!: () => void
+    let releaseFresh!: () => void
+    const old = new Promise<void>(resolve => { releaseOld = resolve })
+    const fresh = new Promise<void>(resolve => { releaseFresh = resolve })
+    await page.clock.install()
+    await page.route('**/todos', async route => {
+      reads += 1
+      if (reads === 2) {
+        await old
+        return route.fulfill({ json: [todo] })
+      }
+      if (reads > 2) {
+        await fresh
+        return route.fulfill({ json: [] })
+      }
+      return route.fulfill({ json: [todo] })
+    })
+    await page.route('**/todos/old-delete-poll', route => route.fulfill({ status: 204 }))
+    await page.goto('/')
+    await expect(page.getByRole('button', { name: `Delete ${todo.task}`, exact: true })).toBeVisible()
+    await page.clock.fastForward(5000)
+    await expect.poll(() => reads).toBe(2)
+    await page.getByRole('button', { name: `Delete ${todo.task}`, exact: true }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Delete todo', exact: true }).click()
+    await expect(page.getByText('No todos yet', { exact: true })).toBeVisible()
+    releaseOld()
+    await expect.poll(() => reads).toBe(3)
+    await expect(page.locator('.todo-row')).toHaveCount(0)
+    releaseFresh()
+    await expect(page.getByText('No todos yet', { exact: true })).toBeVisible()
+  })
+
+  test('refresh resolves a lost deletion response without restoring the record', async ({ page }) => {
+    const todo = { id: 'lost-delete-response', task: 'Deletion response lost', description: '', status: 'incomplete', createdAt: '2026-09-15T09:00:00Z', dueAt: null }
+    let removed = false
+    await page.clock.install()
+    await page.route('**/todos', route => route.fulfill({ json: removed ? [] : [todo] }))
+    await page.route('**/todos/lost-delete-response', route => {
+      removed = true
+      return route.abort('failed')
+    })
+    await page.goto('/')
+    await page.getByRole('button', { name: `Delete ${todo.task}`, exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Delete todo?' })
+    await dialog.getByRole('button', { name: 'Delete todo', exact: true }).click()
+    await expect(dialog.getByRole('alert')).toContainText('Could not confirm deletion')
+    await expect(page.locator('.todo-row')).toHaveCount(1)
+    await page.clock.fastForward(5000)
+    await expect(dialog).not.toBeVisible()
+    await expect(page.getByText('No todos yet', { exact: true })).toBeVisible()
+  })
+
+  for (const result of ['poll', 'not-found', 'late-success', 'late-conflict']) {
+    test(`keeps the draft when deletion is confirmed by ${result}`, async ({ page }, testInfo) => {
+      const todo = { id: 'deleted-edit', task: 'Deleted elsewhere', description: 'Original', status: 'incomplete', createdAt: '2026-09-15T09:00:00Z', dueAt: null }
+      let removed = false
+      let failRead = false
+      let release!: () => void
+      const held = new Promise<void>(resolve => { release = resolve })
+      await page.clock.install()
+      await page.route('**/todos', route => route.fulfill({ status: failRead ? 500 : 200, json: failRead ? { code: 'service_error', message: 'Read failed' } : removed ? [] : [todo] }))
+      await page.route('**/todos/deleted-edit', async route => {
+        if (result === 'not-found') {
+          removed = true
+          return route.fulfill({ status: 404, json: { code: 'not_found', message: 'This Todo no longer exists.' } })
+        }
+        await held
+        return result === 'late-conflict'
+          ? route.fulfill({ status: 409, json: { code: 'status_conflict', message: 'Old conflict', current: { ...todo, status: 'overdue' } } })
+          : route.fulfill({ json: { ...todo, ...route.request().postDataJSON() } })
+      })
+      await page.goto('/')
+      await page.getByRole('button', { name: `Edit ${todo.task}`, exact: true }).click()
+      const dialog = page.getByRole('dialog', { name: 'Edit todo' })
+      await dialog.getByLabel('Task', { exact: true }).fill('Keep this unsaved input')
+      await dialog.getByLabel('Description', { exact: false }).fill('Available to copy')
+      await dialog.getByLabel('Due at', { exact: true }).fill('2035-01-01T10:00')
+      if (result !== 'poll') {
+        await dialog.getByRole('button', { name: 'Save todo' }).click()
+        if (result !== 'not-found') await expect(dialog.getByRole('button', { name: 'Saving', exact: true })).toBeDisabled()
+      }
+      if (result !== 'not-found') {
+        removed = true
+        if (result === 'poll') {
+          failRead = true
+          await page.clock.fastForward(5000)
+          await expect(page.locator('.refresh-error')).toBeVisible()
+          await expect(dialog.getByText(/This Todo was deleted/)).toHaveCount(0)
+          failRead = false
+        }
+        await page.clock.fastForward(5000)
+        await expect(dialog.getByText(/This Todo was deleted/)).toBeVisible()
+        release()
+      }
+      await expect(dialog.getByRole('button', { name: 'Save todo' })).toBeDisabled()
+      await expect(dialog.getByLabel('Task', { exact: true })).toHaveValue('Keep this unsaved input')
+      await expect(dialog.getByLabel('Description', { exact: false })).toHaveValue('Available to copy')
+      await expect(dialog.getByLabel('Task', { exact: true })).toBeEnabled()
+      await expect(dialog.getByLabel('Task', { exact: true })).toHaveJSProperty('readOnly', true)
+      await expect(dialog.getByLabel('Due at', { exact: true })).toHaveValue('2035-01-01T10:00')
+      await expect(page.locator('.todo-row')).toHaveCount(0)
+      await expect(dialog.getByText(/This Todo was deleted/)).toBeInViewport()
+      await page.screenshot({ path: testInfo.outputPath(`deleted-draft-${result}.png`), fullPage: true, animations: 'disabled' })
+      await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+      await page.getByRole('button', { name: 'New todo', exact: true }).click()
+      await expect(page.getByRole('dialog').getByLabel('Task', { exact: true })).toHaveValue('')
+    })
+  }
+})

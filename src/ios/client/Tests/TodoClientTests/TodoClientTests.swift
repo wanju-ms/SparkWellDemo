@@ -131,4 +131,20 @@ func liveServiceMatchesTheContract() async throws {
     #expect(recovered.status == .incomplete)
     #expect(recovered.dueAt == nil)
     #expect(recovered.createdAt == overdue.createdAt)
+
+    try await client.delete(id: updated.id)
+    let otherClient = TodoAPIClient(baseURL: client.baseURL)
+    try await otherClient.delete(id: updated.id)
+    let afterDelete = try await otherClient.list()
+    #expect(!afterDelete.contains { $0.id == updated.id })
+    #expect(afterDelete.contains(recovered))
+    do {
+        _ = try await client.update(id: updated.id, input: changed)
+        Issue.record("An update must not recreate a deleted Todo")
+    } catch TodoClientError.api(let status, let code, _, _) {
+        #expect(status == 404)
+        #expect(code == "not_found")
+    }
+    try await client.delete(id: recovered.id)
+    #expect(try await client.list() == original)
 }

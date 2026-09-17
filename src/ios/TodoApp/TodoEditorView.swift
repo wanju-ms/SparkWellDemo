@@ -11,15 +11,17 @@ struct TodoEditorView: View {
     private let todo: Todo?
     private let isEditing: Bool
     private let createdAt: String?
+    private let deleted: Bool
     private let onSave: (TodoInput) async throws -> Void
 
-    init(todo: Todo?, onSave: @escaping (TodoInput) async throws -> Void) {
+    init(todo: Todo?, deleted: Bool = false, onSave: @escaping (TodoInput) async throws -> Void) {
         var initialDraft = todo?.input ?? TodoInput()
         initialDraft.status = initialDraft.status ?? .incomplete
         _draft = State(initialValue: initialDraft)
         self.todo = todo
         isEditing = todo != nil
         createdAt = todo?.createdAt
+        self.deleted = deleted
         self.onSave = onSave
     }
 
@@ -46,21 +48,40 @@ struct TodoEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
+                if deleted {
+                    Section {
+                        Label("This Todo was deleted. Unsaved input has not been saved.", systemImage: "exclamationmark.circle")
+                            .foregroundStyle(.red)
+                            .accessibilityIdentifier("deleted-notice")
+                    }
+                }
                 Section {
-                    TextField("Task", text: $draft.task, axis: .vertical)
-                        .lineLimit(2...5)
-                        .focused($focusedField, equals: .task)
-                        .accessibilityIdentifier("todo-task")
+                    if deleted {
+                        Text(draft.task)
+                            .textSelection(.enabled)
+                            .accessibilityIdentifier("deleted-task")
+                    } else {
+                        TextField("Task", text: $draft.task, axis: .vertical)
+                            .lineLimit(2...5)
+                            .focused($focusedField, equals: .task)
+                            .accessibilityIdentifier("todo-task")
+                    }
                 } header: {
                     fieldHeader("Task", count: draft.task.count, limit: TodoInput.taskLimit)
                 } footer: {
                     if let taskError { Text(taskError).foregroundStyle(.red) }
                 }
                 Section {
-                    TextField("Description", text: $draft.description, axis: .vertical)
-                        .lineLimit(4...8)
-                        .focused($focusedField, equals: .description)
-                        .accessibilityIdentifier("todo-description")
+                    if deleted {
+                        Text(draft.description)
+                            .textSelection(.enabled)
+                            .accessibilityIdentifier("deleted-description")
+                    } else {
+                        TextField("Description", text: $draft.description, axis: .vertical)
+                            .lineLimit(4...8)
+                            .focused($focusedField, equals: .description)
+                            .accessibilityIdentifier("todo-description")
+                    }
                 } header: {
                     fieldHeader("Description (optional)", count: draft.description.count, limit: TodoInput.descriptionLimit)
                 } footer: {
@@ -78,6 +99,7 @@ struct TodoEditorView: View {
                         Text("No deadline").foregroundStyle(.secondary)
                     }
                 }
+                .disabled(deleted)
                 Section("Status") {
                     if todo?.status == .overdue {
                         Text("Overdue")
@@ -92,11 +114,12 @@ struct TodoEditorView: View {
                         .pickerStyle(.segmented)
                     }
                 }
+                .disabled(deleted)
                 Section {
                     CreatedAtView(value: createdAt)
                         .accessibilityIdentifier("editor-created-at")
                 }
-                if let failure {
+                if let failure, !deleted {
                     Section {
                         Label(failure, systemImage: "exclamationmark.circle")
                             .foregroundStyle(.red)
@@ -104,7 +127,7 @@ struct TodoEditorView: View {
                     }
                 }
             }
-            .disabled(isSaving)
+            .disabled(isSaving && !deleted)
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle(isEditing ? "Edit todo" : "New todo")
             .navigationBarTitleDisplayMode(.inline)
@@ -123,7 +146,7 @@ struct TodoEditorView: View {
                             Label("Save todo", systemImage: "checkmark")
                         }
                     }
-                    .disabled(isSaving || !draft.validationErrors.isEmpty)
+                    .disabled(deleted || isSaving || !draft.validationErrors.isEmpty)
                     .accessibilityIdentifier("save-todo")
                 }
             }
@@ -133,6 +156,9 @@ struct TodoEditorView: View {
                 if previous == .task { taskTouched = true }
             }
             .onChange(of: draft) { _, _ in failure = nil }
+            .onChange(of: deleted) { _, deleted in
+                if deleted { focusedField = nil }
+            }
         }
         .tint(.teal)
     }
@@ -150,7 +176,7 @@ struct TodoEditorView: View {
 
     private func save() async {
         taskTouched = true
-        guard !isSaving, draft.validationErrors.isEmpty else { return }
+        guard !deleted, !isSaving, draft.validationErrors.isEmpty else { return }
         isSaving = true
         failure = nil
         defer { isSaving = false }

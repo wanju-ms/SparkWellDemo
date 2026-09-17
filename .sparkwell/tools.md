@@ -4,17 +4,20 @@ One Node.js command provides configuration checks, Spark selection, and
 [Implementation Map](implementation-map.md) management. It does not generate
 application code or manual test cases, or execute the `/spark-impl` and `/spark-qa` workflows.
 
+A separate [trace tool](tools/trace.js) extracts versioned diffs, validates the [Change Map](change-map.md) used by `/spark-trace`, and looks up saved explanations for review selections.
+It does not infer semantic links or render a review UI.
+
 ## Setup
 
 Node.js 24 or later and npm are required in the environment where the agent runs
-these tools. This is also a prerequisite for the `/spark-impl` and `/spark-qa` workflows,
+these tools. This is also a prerequisite for the `/spark-impl`, `/spark-qa`, and `/spark-trace` workflows,
 not for the generated application's runtime. From the project root:
 
 ```sh
 npm ci --prefix .sparkwell/tools
 ```
 
-The only third-party dependency is `yaml`. The tools have their own
+The dependencies are `yaml` for structured metadata and `diff` for structured change blocks. The tools have their own
 [package manifest](tools/package.json) and [lockfile](tools/package-lock.json),
 separate from application dependencies. Python and a virtual environment are not
 required.
@@ -145,4 +148,5 @@ npm test --prefix .sparkwell/tools
 Tests cover invalid YAML and metadata, path boundaries, matching and dependencies,
 scope separation, stale maps, targeted changes, and failed or concurrent writes.
 They also cover QA config types, guidance files, and compatibility with existing selection behavior.
+The same test command runs [trace tests](tools/test-trace.js) in isolated Git repositories, covering snapshot selection, diff coordinates, association validation, and output safety.
 They test the tools, not generated application behavior or Skill reliability.

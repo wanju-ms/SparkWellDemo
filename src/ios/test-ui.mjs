@@ -13,6 +13,8 @@ const monitor = createExpirationMonitor(app.locals.todoService)
 let writes = []
 let pauseWrites = false
 let pendingResponses = []
+let pauseWriteResults = false
+let pendingWriteResults = []
 let reads = 0
 let readMode = 'normal'
 let pendingReads = []
@@ -35,10 +37,13 @@ const server = createServer(async (request, response) => {
       switch (request.url) {
         case '/__test/reset':
           for (const pending of pendingResponses) pending.destroy()
+          for (const pending of pendingWriteResults) pending.response.destroy()
           for (const pending of pendingReads) pending.response.destroy()
           pendingResponses = []
+          pendingWriteResults = []
           pendingReads = []
           pauseWrites = false
+          pauseWriteResults = false
           writes = []
           reads = 0
           readMode = 'normal'
@@ -55,6 +60,16 @@ const server = createServer(async (request, response) => {
             respond(pending, 500, { code: 'service_error', message: 'Simulated save failure.' })
           }
           pendingResponses = []
+          break
+        case '/__test/pause-write-results':
+          pauseWriteResults = true
+          break
+        case '/__test/release-write-results':
+          pauseWriteResults = false
+          for (const pending of pendingWriteResults) {
+            if (!pending.response.destroyed) respond(pending.response, pending.status, pending.body)
+          }
+          pendingWriteResults = []
           break
         case '/__test/clock':
           serviceTime = body.now
@@ -78,7 +93,7 @@ const server = createServer(async (request, response) => {
           respond(response, 404, { message: 'Unknown test control.' })
           return
       }
-      respond(response, 200, { writes, todos: [...store.values()], pendingCount: pendingResponses.length, reads, pendingReadCount: pendingReads.length })
+      respond(response, 200, { writes, todos: [...store.values()], pendingCount: pendingResponses.length, pendingWriteResultCount: pendingWriteResults.length, reads, pendingReadCount: pendingReads.length })
     } catch {
       respond(response, 400, { message: 'Invalid test control request.' })
     }
@@ -95,7 +110,18 @@ const server = createServer(async (request, response) => {
       return
     }
   }
-  if (['POST', 'PUT'].includes(request.method) && /^\/todos(?:\/|$)/.test(request.url)) {
+  if (pauseWriteResults && request.method === 'PUT' && request.url.startsWith('/todos/')) {
+    const body = await readJSON(request)
+    writes.push({ method: request.method, path: request.url, body })
+    try {
+      const saved = app.locals.todoService.update(decodeURIComponent(request.url.slice('/todos/'.length)), body)
+      pendingWriteResults.push({ response, status: 200, body: saved })
+    } catch (error) {
+      pendingWriteResults.push({ response, status: error.status ?? 500, body: error.body ?? { code: 'service_error', message: 'Write failed.' } })
+    }
+    return
+  }
+  if (['POST', 'PUT', 'DELETE'].includes(request.method) && /^\/todos(?:\/|$)/.test(request.url)) {
     const paused = pauseWrites
     const chunks = []
     request.on('data', chunk => chunks.push(chunk))

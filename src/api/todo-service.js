@@ -107,5 +107,8 @@ export function createTodoService({ store = new Map(), createId = randomUUID, cl
       }
       return commit(todo)
     },
+    delete(id) {
+      store.delete(id)
+    },
   }
 }

@@ -13,6 +13,7 @@ struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var model = TodoAppModel()
     @State private var editor: EditorSession?
+    @State private var deletion: DeletionPrompt?
     @ScaledMetric(relativeTo: .caption) private var timestampColumnWidth = 88
 
     var body: some View {
@@ -66,15 +67,35 @@ struct ContentView: View {
                                     CreatedAtView(value: todo.dueAt, label: "Due at", emptyValue: "No deadline")
                                         .frame(width: timestampColumnWidth, alignment: .leading)
                                         .accessibilityIdentifier("list-due-at")
-                                    Button {
-                                        editor = EditorSession(todo: todo)
-                                    } label: {
-                                        Image(systemName: "square.and.pencil")
+                                    VStack(spacing: 4) {
+                                        Button {
+                                            editor = EditorSession(todo: todo)
+                                        } label: {
+                                            Image(systemName: "square.and.pencil")
+                                                .frame(width: 32, height: 32)
+                                        }
+                                        .disabled(model.deletingId == todo.id)
+                                        .accessibilityLabel("Edit \(todo.task)")
+                                        .help("Edit todo")
+                                        Button {
+                                            deletion = DeletionPrompt(todo: todo)
+                                        } label: {
+                                            Group {
+                                                if model.deletingId == todo.id {
+                                                    ProgressView()
+                                                } else {
+                                                    Image(systemName: "trash")
+                                                }
+                                            }
                                             .frame(width: 32, height: 32)
+                                        }
+                                        .foregroundStyle(.red)
+                                        .disabled(model.deletingId != nil)
+                                        .accessibilityLabel("Delete \(todo.task)")
+                                        .accessibilityValue(model.deletingId == todo.id ? "Deleting" : "")
+                                        .help("Delete todo")
                                     }
                                     .buttonStyle(.borderless)
-                                    .accessibilityLabel("Edit \(todo.task)")
-                                    .help("Edit todo")
                                 }
                                 .padding(.vertical, 9)
                             }
@@ -129,9 +150,26 @@ struct ContentView: View {
             }
             .onDisappear { model.setActive(false) }
             .sheet(item: $editor) { session in
-                TodoEditorView(todo: session.todo.flatMap { target in model.todos.first { $0.id == target.id } } ?? session.todo) { input in
+                TodoEditorView(
+                    todo: session.todo.flatMap { target in model.todos.first { $0.id == target.id } } ?? session.todo,
+                    deleted: session.todo.map { model.deletedIds.contains($0.id) } ?? false
+                ) { input in
                     try await model.save(input, target: session.todo)
                 }
+            }
+            .alert(deletion?.error == nil ? "Delete todo?" : "Could not delete todo", isPresented: Binding(
+                get: { deletion != nil },
+                set: { if !$0 { deletion = nil } }
+            ), presenting: deletion) { prompt in
+                Button(prompt.error == nil ? "Delete todo" : "Retry delete", role: .destructive) {
+                    Task { await deleteTodo(prompt.todo) }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { prompt in
+                Text("\(prompt.todo.task)\n\n\(prompt.error ?? "This cannot be undone.")")
+            }
+            .onChange(of: model.deletedIds) { _, deleted in
+                if let deletion, deleted.contains(deletion.todo.id) { self.deletion = nil }
             }
         }
         .tint(.teal)
@@ -140,6 +178,23 @@ struct ContentView: View {
     private struct EditorSession: Identifiable {
         let id = UUID()
         let todo: Todo?
+    }
+
+    private struct DeletionPrompt {
+        let todo: Todo
+        var error: String? = nil
+    }
+
+    private func deleteTodo(_ todo: Todo) async {
+        do {
+            try await model.delete(todo)
+        } catch {
+            if !model.deletedIds.contains(todo.id) {
+                deletion = DeletionPrompt(todo: todo, error: error is TodoClientError
+                    ? error.localizedDescription
+                    : "Could not confirm deletion. Retry or reload to check.")
+            }
+        }
     }
 }
 

@@ -26,7 +26,7 @@ async function runApi(context, options) {
         body: JSON.stringify(body),
       }),
     })
-    return { status: response.status, body: await response.json(), headers: response.headers }
+    return { status: response.status, body: response.status === 204 ? null : await response.json(), headers: response.headers }
   }
 }
 
@@ -57,6 +57,10 @@ test('the shared OpenAPI contract is valid', async () => {
   assert.equal(Todo.properties.createdAt.readOnly, true)
   assert.equal(Object.hasOwn(TodoInput.properties, 'createdAt'), false)
   assert.equal(TodoInput.additionalProperties, false)
+  const deletion = document.paths['/todos/{id}'].delete
+  assert.equal(deletion.operationId, 'deleteTodo')
+  assert.ok(deletion.responses['204'])
+  assert.equal(Object.hasOwn(deletion.responses['204'], 'content'), false)
 })
 
 test('empty load, create, independent identities, update, and subsequent load', async context => {
@@ -155,6 +159,68 @@ test('updating a missing ID never creates a record', async context => {
   assert.deepEqual((await request()).body, [])
 })
 
+test('deletion is idempotent for every status and removes only the selected record', async context => {
+  const request = await runApi(context, { clock: () => new Date('2026-09-17T12:00:00Z') })
+  const records = []
+  for (const changes of [{}, { status: 'completed' }, { dueAt: '2026-09-16T12:00:00Z' }]) {
+    records.push((await request('/todos', 'POST', { ...input, ...changes })).body)
+  }
+  assert.deepEqual(records.map(todo => todo.status), ['incomplete', 'completed', 'overdue'])
+  while (records.length) {
+    const target = records.shift()
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const deleted = await request(`/todos/${target.id}`, 'DELETE')
+      assert.equal(deleted.status, 204)
+      assert.equal(deleted.body, null)
+      assert.deepEqual((await request()).body, records)
+    }
+    assert.equal((await request(`/todos/${target.id}`, 'PUT', input)).status, 404)
+  }
+  assert.equal((await request('/todos/never-created', 'DELETE')).status, 204)
+  assert.deepEqual((await request()).body, [])
+})
+
+test('deletion cannot be undone by a late update or an overdue candidate', () => {
+  let now = new Date('2026-09-17T12:00:00Z')
+  const store = new Map()
+  const service = createTodoService({ store, clock: () => now })
+  const target = service.create({ ...input, dueAt: '2026-09-17T12:00:01Z' })
+  now = new Date('2026-09-17T12:00:02Z')
+  const candidates = service.overdueCandidates()
+  service.delete(target.id)
+  assert.deepEqual(candidates, [target.id])
+  assert.equal(service.markOverdue(candidates[0]), null)
+  assert.throws(() => service.update(target.id, input), error => error.status === 404)
+  assert.deepEqual(service.list(), [])
+  assert.equal(store.size, 0)
+
+  const savedFirst = service.create(input)
+  service.update(savedFirst.id, { ...input, status: 'completed' })
+  service.delete(savedFirst.id)
+  assert.deepEqual(service.list(), [])
+})
+
+test('failed deletion leaves saved data unchanged and can be retried', async context => {
+  class FailingDeleteStore extends Map {
+    failDeletes = false
+    delete(id) {
+      if (this.failDeletes) throw new Error('Storage unavailable')
+      return super.delete(id)
+    }
+  }
+  const store = new FailingDeleteStore()
+  const request = await runApi(context, { store })
+  const target = (await request('/todos', 'POST', input)).body
+  store.failDeletes = true
+  const failure = await request(`/todos/${target.id}`, 'DELETE')
+  assert.equal(failure.status, 500)
+  assert.equal(failure.body.code, 'service_error')
+  assert.deepEqual((await request()).body, [target])
+  store.failDeletes = false
+  assert.equal((await request(`/todos/${target.id}`, 'DELETE')).status, 204)
+  assert.deepEqual((await request()).body, [])
+})
+
 test('failed writes retain the complete previous record; failed reads are not empty loads', async context => {
   class FailingStore extends Map {
     failWrites = false
@@ -199,12 +265,15 @@ test('malformed JSON and browser preflight use the shared HTTP boundary', async 
   assert.equal((await invalid.json()).code, 'invalid_json')
   const unsupported = await fetch(url, { method: 'POST', body: 'text' })
   assert.equal(unsupported.status, 415)
-  const preflight = await fetch(url, {
-    method: 'OPTIONS',
-    headers: { Origin: 'http://localhost:5173', 'Access-Control-Request-Method': 'PUT' },
-  })
-  assert.equal(preflight.status, 204)
-  assert.equal(preflight.headers.get('access-control-allow-origin'), 'http://localhost:5173')
+  for (const method of ['PUT', 'DELETE']) {
+    const preflight = await fetch(url, {
+      method: 'OPTIONS',
+      headers: { Origin: 'http://localhost:5173', 'Access-Control-Request-Method': method },
+    })
+    assert.equal(preflight.status, 204)
+    assert.equal(preflight.headers.get('access-control-allow-origin'), 'http://localhost:5173')
+    assert.ok(preflight.headers.get('access-control-allow-methods').split(',').includes(method))
+  }
 })
 
 test('overdue uses a strict deadline, protects completed items, and conflicts with stale status writes', async context => {

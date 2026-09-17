@@ -69,7 +69,7 @@ to a disposable API when running `swift test`; those tests write data there.
 
 ## Work with Sparks
 
-Install the SparkWell tools' dependencies before using the implementation or QA Skills:
+Install the SparkWell tools' dependencies before using the implementation, QA, or trace Skills:
 
 ```sh
 npm ci --prefix .sparkwell/tools
@@ -78,9 +78,11 @@ npm ci --prefix .sparkwell/tools
 - [Spark Design](.github/skills/spark-design/SKILL.md): use `/spark-design` to discuss a requirement or change, then confirm the design before updating Artifacts.
 - [Spark Implementation](.github/skills/spark-impl/SKILL.md): use `/spark-impl` to implement the selected, confirmed design, reuse existing code, and verify changes.
 - [Spark QA](.github/skills/spark-qa/SKILL.md): use `/spark-qa` to create or update human-readable manual test cases by platform and business workflow, with the requested coverage and execution budget. It does not run tests.
+- [Spark Trace](.github/skills/spark-trace/SKILL.md): use `/spark-trace` with two revisions or local changes to produce a temporary JSON linking code diff blocks to design changes and their rationale.
 
 Reference material:
 
 - [Overview](.sparkwell/sparkwell-overview.md), [Modeling Guide](.sparkwell/design-modeling-guide.md), and [Artifact Specification](.sparkwell/artifact-document-spec.md).
 - [Implementation Configuration](.sparkwell/implementation-config.md) and [Implementation Map](.sparkwell/implementation-map.md).
+- [Change Map](.sparkwell/change-map.md): review-data format and trace commands.
 - [Tools and Checks](.sparkwell/tools.md).

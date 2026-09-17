@@ -33,6 +33,24 @@ test('typed client loads, creates, updates, and receives structured errors from 
     return error instanceof TodoClientError && error.status === 422 && Boolean(error.fields.task)
   })
   assert.deepEqual(await client.list(), [updated])
+  const otherClient = createTodoClient(`http://127.0.0.1:${address.port}`)
+  await client.delete(updated.id)
+  await otherClient.delete(updated.id)
+  assert.deepEqual(await otherClient.list(), [])
+  await assert.rejects(client.update(updated.id, input), error => error instanceof TodoClientError && error.status === 404)
+})
+
+test('typed client exposes deletion failures rather than accepting them as success', async context => {
+  const server = createTodoApp({ service: { delete() { throw new Error('Storage unavailable') } } }).listen(0, '127.0.0.1')
+  await once(server, 'listening')
+  context.after(() => new Promise<void>(resolve => {
+    server.closeAllConnections()
+    server.close(() => resolve())
+  }))
+  const address = server.address()
+  assert.ok(address && typeof address !== 'string')
+  const client = createTodoClient(`http://127.0.0.1:${address.port}`)
+  await assert.rejects(client.delete('target'), error => error instanceof TodoClientError && error.status === 500)
 })
 
 test('UI validation preserves inclusive grapheme boundaries and draft text', () => {

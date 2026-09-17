@@ -1,6 +1,9 @@
 schema-version: 1
 implementation-id: api-server
 artifacts:
+  - path: src/api/README.md
+    derived-from:
+      - todo-service
   - path: src/api/expiration-monitor.js
     derived-from:
       - todo-expiration-monitor

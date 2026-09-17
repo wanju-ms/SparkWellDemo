@@ -148,7 +148,21 @@ public struct TodoAPIClient: Sendable {
         try await send(method: "PUT", id: id, input: input)
     }
 
+    public func delete(id: String) async throws {
+        let (_, response) = try await request(method: "DELETE", id: id)
+        guard response.statusCode == 204 else { throw TodoClientError.invalidResponse }
+    }
+
     private func send<Result: Decodable & Sendable>(method: String, id: String? = nil, input: TodoInput? = nil) async throws -> Result {
+        let (data, _) = try await request(method: method, id: id, input: input)
+        do {
+            return try JSONDecoder().decode(Result.self, from: data)
+        } catch {
+            throw TodoClientError.invalidResponse
+        }
+    }
+
+    private func request(method: String, id: String? = nil, input: TodoInput? = nil) async throws -> (Data, HTTPURLResponse) {
         var url = baseURL.appending(component: "todos")
         if let id { url = url.appending(component: id) }
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
@@ -172,11 +186,7 @@ public struct TodoAPIClient: Sendable {
                 fields: error?.fields ?? [:]
             )
         }
-        do {
-            return try JSONDecoder().decode(Result.self, from: data)
-        } catch {
-            throw TodoClientError.invalidResponse
-        }
+        return (data, response)
     }
 
     private struct ErrorResponse: Decodable {

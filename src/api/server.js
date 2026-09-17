@@ -20,7 +20,7 @@ export function createTodoApp(options = {}) {
         done(null, false)
       }
     },
-    methods: ['GET', 'POST', 'PUT'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
   }))
   app.use((_request, response, next) => {
     response.set('Cache-Control', 'no-store')
@@ -46,6 +46,11 @@ export function createTodoApp(options = {}) {
 
   app.put('/todos/:id', requireJSON, (request, response) => {
     response.json(service.update(request.params.id, request.body))
+  })
+
+  app.delete('/todos/:id', (request, response) => {
+    service.delete(request.params.id)
+    response.status(204).end()
   })
 
   app.use((_request, response) => {

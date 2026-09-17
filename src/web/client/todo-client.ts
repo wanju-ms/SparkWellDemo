@@ -41,5 +41,11 @@ export function createTodoClient(baseURL: string) {
     async update(id: string, input: TodoUpdate): Promise<Todo> {
       return resultData(await http.PUT('/todos/{id}', { params: { path: { id } }, body: input }))
     },
+    async delete(id: string): Promise<void> {
+      const result = await http.DELETE('/todos/{id}', { params: { path: { id } } })
+      if (result.response.status !== 204 || result.error) {
+        throw new TodoClientError(result.response.status, result.error)
+      }
+    },
   }
 }

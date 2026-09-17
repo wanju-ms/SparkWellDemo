@@ -16,8 +16,9 @@ npm run dev
 Use `npm start` without file watching. The default address is
 `http://127.0.0.1:3000`; `HOST` and `PORT` override it.
 
-The API exposes `GET /todos`, `POST /todos`, and `PUT /todos/{id}`. Requests and
-errors use JSON. Field semantics, status values, and responses are defined in
+The API exposes `GET /todos`, `POST /todos`, `PUT /todos/{id}`, and `DELETE /todos/{id}`.
+Deletion returns `204` without a body, including when the ID is already absent.
+Other responses and write inputs use JSON. Field semantics, status values, and responses are defined in
 the contract. Text limits count grapheme clusters, including combined emoji;
 the server reads those limits from the contract and validates every write.
 

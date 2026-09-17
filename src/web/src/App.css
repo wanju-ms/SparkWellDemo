@@ -11,6 +11,8 @@
 .button.primary:hover:not(:disabled) { background: #075b4e; }
 .button.secondary { background: #fff; color: var(--ink); border-color: var(--border); }
 .button.secondary:hover:not(:disabled) { background: #f0f4f2; }
+.button.danger { background: var(--error); color: #fff; }
+.button.danger:hover:not(:disabled) { filter: brightness(.9); }
 .icon-button { width: 36px; height: 36px; flex: 0 0 36px; padding: 0; display: inline-grid; place-items: center; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 5px; }
 .icon-button:hover:not(:disabled) { color: var(--ink); background: #e9efec; border-color: var(--border); }
 .list-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 58px; border-block: 1px solid var(--border); }
@@ -20,7 +22,7 @@
 .count { display: grid; place-items: center; min-width: 24px; min-height: 23px; padding: 1px 5px; background: #e8eeeb; border-radius: 4px; font-size: 11px; font-weight: 700; }
 .completion-summary { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .todo-list { list-style: none; padding: 0; margin: 0; }
-.todo-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) 90px minmax(120px, 155px) minmax(120px, 155px) 36px; gap: 16px; align-items: start; padding: 24px 0; border-bottom: 1px solid var(--border); animation: row-in 180ms ease-out; }
+.todo-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) 90px minmax(120px, 155px) minmax(120px, 155px) 76px; gap: 16px; align-items: start; padding: 24px 0; border-bottom: 1px solid var(--border); animation: row-in 180ms ease-out; }
 .row-status-icon { padding-top: 3px; color: #9aa9a1; }
 .is-complete .row-status-icon { color: var(--accent); }
 .todo-content { min-width: 0; }
@@ -41,12 +43,17 @@
 .created-at dd { margin: 0; font-size: 12px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .editor-fields > .created-at dt { color: var(--ink); font-size: 13px; font-weight: 700; }
 .editor-fields > .created-at dd { color: var(--muted); font-size: 13px; }
-.edit-button { margin-top: -3px; }
+.row-actions { display: flex; gap: 4px; margin-top: -3px; }
+.delete-button { color: var(--error); }
 .list-state { display: flex; align-items: center; flex-direction: column; justify-content: center; gap: 18px; min-height: 300px; color: var(--muted); border-bottom: 1px solid var(--border); }
 .list-state h2 { font-size: 17px; font-weight: 600; color: var(--ink); }
 .empty-icon { color: var(--accent); background: #e7f0e9; width: 70px; height: 70px; display: grid; place-items: center; border-radius: 8px; }
 .editor-modal { width: min(560px, calc(100% - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid #d9e2dc; border-radius: 8px; box-shadow: 0 24px 90px #15251e33; color: var(--ink); background: #fff; overflow: auto; }
 .editor-modal::backdrop { background: #17231e73; }
+.delete-modal { width: min(440px, calc(100% - 32px)); }
+.delete-details { padding: 24px 26px; display: grid; gap: 12px; font-size: 13px; }
+.delete-target { font-weight: 650; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 160px; overflow: auto; }
+.save-error.deleted-notice { margin-top: 22px; margin-bottom: 0; }
 .modal-heading { display: flex; align-items: center; justify-content: space-between; padding: 21px 26px 18px; border-bottom: 1px solid var(--border); gap: 16px; }
 .modal-heading h2 { font-size: 20px; font-weight: 750; }
 .editor-fields { padding: 24px 26px; border: 0; margin: 0; min-width: 0; display: grid; gap: 23px; }
@@ -83,7 +90,8 @@ textarea:focus { outline: 2px solid #79baa9; outline-offset: 2px; }
   .todo-content { grid-column: 1; }
   .todo-row > .created-at { grid-column: 2; grid-row: 1 / span 2; }
   .due-at-column { grid-column: 3; grid-row: 1 / span 2; }
-  .edit-button { grid-column: 4; grid-row: 1; width: 30px; }
+  .row-actions { grid-column: 4; grid-row: 1 / span 2; flex-direction: column; }
+  .row-actions .icon-button { width: 30px; }
   .todo-row > .status-label { grid-column: 1; grid-row: 2; justify-self: start; padding-inline: 6px; max-width: 100%; overflow-wrap: anywhere; }
   .completion-summary { font-size: 11px; }
   .modal-heading { padding: 18px 20px; }

@@ -9,6 +9,8 @@ final class TodoAppModel {
     private(set) var isLoading = false
     private(set) var hasLoaded = false
     private(set) var loadError: String?
+    private(set) var deletingId: String?
+    private(set) var deletedIds = Set<String>()
     private let endpoint: String
     @ObservationIgnored private var pollingTask: Task<Void, Never>?
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
@@ -70,7 +72,9 @@ final class TodoAppModel {
             do {
                 let loaded = try await service().list()
                 guard !Task.isCancelled, isActive, startedRevision == revision else { return }
-                todos = loaded
+                let present = Set(loaded.map(\.id))
+                deletedIds.formUnion(todos.map(\.id).filter { !present.contains($0) })
+                todos = loaded.filter { !self.deletedIds.contains($0.id) }
                 hasLoaded = true
                 loadError = nil
             } catch {
@@ -87,18 +91,41 @@ final class TodoAppModel {
         do {
             let saved: Todo
             if let target {
+                guard !deletedIds.contains(target.id) else {
+                    throw TodoClientError.api(status: 404, code: "not_found", message: "This Todo was deleted.", fields: [:])
+                }
                 saved = try await client.update(id: target.id, input: input)
             } else {
                 saved = try await client.create(input)
             }
-            apply(saved)
+            guard apply(saved) else {
+                throw TodoClientError.api(status: 404, code: "not_found", message: "This Todo was deleted.", fields: [:])
+            }
         } catch let error as TodoClientError {
+            if let target, case let .api(status, _, _, _) = error, status == 404 { remove(target.id) }
             if let current = error.current { apply(current) }
             throw error
         }
     }
 
-    private func apply(_ saved: Todo) {
+    func delete(_ todo: Todo) async throws {
+        guard deletingId == nil else { return }
+        deletingId = todo.id
+        defer { deletingId = nil }
+        try await service().delete(id: todo.id)
+        remove(todo.id)
+    }
+
+    private func remove(_ id: String) {
+        deletedIds.insert(id)
+        revision += 1
+        if refreshTask != nil { queuedRefresh = true }
+        todos.removeAll { $0.id == id }
+    }
+
+    @discardableResult
+    private func apply(_ saved: Todo) -> Bool {
+        guard !deletedIds.contains(saved.id) else { return false }
         revision += 1
         if refreshTask != nil { queuedRefresh = true }
         if let index = todos.firstIndex(where: { $0.id == saved.id }) {
@@ -106,6 +133,7 @@ final class TodoAppModel {
         } else {
             todos.append(saved)
         }
+        return true
     }
 
     private func service() throws -> TodoAPIClient {

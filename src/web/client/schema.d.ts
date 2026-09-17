@@ -33,7 +33,8 @@ export interface paths {
         /** Atomically replace the business fields of an existing Todo */
         put: operations["updateTodo"];
         post?: never;
-        delete?: never;
+        /** Delete a Todo in any status */
+        delete: operations["deleteTodo"];
         options?: never;
         head?: never;
         patch?: never;
@@ -234,6 +235,29 @@ export interface operations {
             413: components["responses"]["RequestError"];
             415: components["responses"]["RequestError"];
             422: components["responses"]["ValidationError"];
+            500: components["responses"]["ServiceError"];
+        };
+    };
+    deleteTodo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The stable opaque ID returned by the service. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record was atomically removed or was already absent. No response body. Later updates and overdue checks cannot recreate it. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["RequestError"];
             500: components["responses"]["ServiceError"];
         };
     };

@@ -6,9 +6,10 @@
     "node": ">=24"
   },
   "scripts": {
-    "test": "node --test test-sparkwell.js"
+    "test": "node --test test-sparkwell.js test-trace.js"
   },
   "dependencies": {
+    "diff": "^9.0.0",
     "yaml": "^2.8.1"
   }
 }
