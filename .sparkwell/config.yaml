@@ -55,6 +55,7 @@ implementations:
   web-ui:
     source-root: src/web
     stack: react
+    qa: true
     depends-on: [web-client]
     guidance: |
       Implement the selected UI Sparks as a React application, consuming HTTP
@@ -64,6 +65,7 @@ implementations:
   ios-ui:
     source-root: src/ios
     stack: swiftui
+    qa: true
     depends-on: [ios-client]
     guidance: |
       Implement the selected UI Sparks as a native iOS app using SwiftUI and
@@ -72,27 +74,28 @@ implementations:
       presentation for the editor.
 
 bindings:
-  - match: [{id: todo-service}]
+  - match:
+      - id: todo-service
+      - id: todo-item
     implementation: api-contract
-  - match: [{id: todo-item}]
-    implementation: api-contract
-  - match: [{id: todo-service}]
-    implementation: api-server
-  - match: [{id: todo-item}]
-    implementation: api-server
-  - match: [{id: todo-expiration-monitor}]
+  - match:
+      - id: todo-service
+      - id: todo-item
+      - id: todo-expiration-monitor
     implementation: api-server
   - id: service-clients
-    match: [{id: todo-service}]
-    implementation: web-client
-  - match: [{id: todo-item}]
+    match:
+      - id: todo-service
+      - id: todo-item
     implementation: web-client
   - id: ios-service-clients
-    match: [{id: todo-service}]
+    match:
+      - id: todo-service
+      - id: todo-item
     implementation: ios-client
-  - match: [{id: todo-item}]
-    implementation: ios-client
-  - match: [{spark-type: ui}]
+  - match:
+      - spark-type: ui
     implementation: web-ui
-  - match: [{spark-type: ui}]
+  - match:
+      - spark-type: ui
     implementation: ios-ui

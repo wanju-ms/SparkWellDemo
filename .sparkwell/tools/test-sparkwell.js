@@ -233,6 +233,67 @@ test('guidance files must be readable and exclusive with inline guidance', conte
   errorCode('guidance-conflict', () => tools.loadConfig(fixture.root))
 })
 
+test('QA configuration accepts optional defaults and independent guidance', context => {
+  const fixture = project(context)
+  const config = configuration()
+  config.implementations.ui.qa = true
+  config.implementations.ui['guidance-file'] = 'docs/ui.md'
+  config.implementations.ui['qa-guidance'] = 'Use the desktop browser and disposable test data.'
+  config.implementations.server.qa = false
+  config.implementations.client.guidance = 'Reuse the contract.'
+  config.implementations.client['qa-guidance-file'] = 'docs/client-qa.md'
+  fixture.write('docs/ui.md', 'Use existing UI conventions.\n')
+  fixture.write('docs/client-qa.md', 'Use the existing service inspection tool.\n')
+  fixture.config(config)
+  assert.deepEqual(tools.loadConfig(fixture.root), config)
+})
+
+test('QA configuration rejects non-booleans and invalid guidance values', context => {
+  const fixture = project(context)
+  for (const value of ['true', 'false', 'enable', 0, 1, null, [], {}]) {
+    const config = configuration()
+    config.implementations.ui.qa = value
+    fixture.config(config)
+    errorCode('invalid-boolean', () => tools.loadConfig(fixture.root))
+  }
+  for (const field of ['qa-guidance', 'qa-guidance-file']) {
+    for (const value of ['', '  ', null, 1, [], {}]) {
+      const config = configuration()
+      config.implementations.ui[field] = value
+      fixture.config(config)
+      errorCode('invalid-string', () => tools.loadConfig(fixture.root))
+    }
+  }
+})
+
+test('QA guidance files must be readable, non-empty, and exclusive', context => {
+  const fixture = project(context)
+  const config = configuration()
+  config.implementations.ui['qa-guidance-file'] = 'docs/qa.md'
+  fixture.config(config)
+  errorCode('missing-file', () => tools.loadConfig(fixture.root))
+  fixture.write('docs/qa.md', ' \n')
+  errorCode('invalid-string', () => tools.loadConfig(fixture.root))
+  fixture.write('docs/qa.md', 'Use a disposable environment.\n')
+  assert.deepEqual(tools.loadConfig(fixture.root), config)
+  config.implementations.ui['qa-guidance'] = 'Other QA instructions'
+  fixture.config(config)
+  errorCode('qa-guidance-conflict', () => tools.loadConfig(fixture.root))
+})
+
+test('QA guidance paths cannot escape the project', context => {
+  const fixture = project(context)
+  const outside = project(context)
+  fs.symlinkSync(outside.root, path.join(fixture.root, 'outside'), 'dir')
+  outside.write('qa.md', 'External guidance.\n')
+  for (const value of ['../qa.md', '/qa.md', 'C:/qa.md', 'docs\\qa.md', 'outside/qa.md']) {
+    const config = configuration()
+    config.implementations.ui['qa-guidance-file'] = value
+    fixture.config(config)
+    errorCode('unsafe-path', () => tools.loadConfig(fixture.root))
+  }
+})
+
 test('CLI emits JSON errors without creating missing files', context => {
   const fixture = project(context)
   const missing = fixture.cli(['check'])
@@ -265,6 +326,34 @@ test('named binding selection excludes prerequisites and unrelated implementatio
   assert.deepEqual(Object.fromEntries(result.prerequisites[0].candidates.map(pair => [pair.spark, pair['in-model-context']])), {
     'other-service': false, 'todo-service': true,
   })
+  assert.deepEqual(fs.readdirSync(fixture.root, { recursive: true }).sort(), before)
+})
+
+test('QA metadata is exposed without changing selection or prerequisite scope', context => {
+  const fixture = project(context)
+  fixture.model()
+  const config = fixture.config(configuration())
+  const originalPairs = fixture.cli(['resolve', '--all']).result.selected
+  config.implementations.ui.qa = true
+  config.implementations.ui['qa-guidance'] = 'Use the desktop browser.'
+  config.implementations.client.qa = true
+  config.implementations.client['qa-guidance-file'] = 'docs/client-qa.md'
+  config.implementations.server.qa = false
+  fixture.write('docs/client-qa.md', 'Use the service inspection tool.\n')
+  fixture.config(config)
+  const before = fs.readdirSync(fixture.root, { recursive: true }).sort()
+  const { exitCode, result } = fixture.cli(['resolve', '--spark', 'todo-app', '--implementation', 'ui'])
+  assert.equal(exitCode, 0)
+  assert.deepEqual(result.implementations.ui, config.implementations.ui)
+  assert.deepEqual(result.implementations.client, config.implementations.client)
+  assert.deepEqual(result.selected.map(pair => [pair.spark, pair.implementation]), [['todo-app', 'ui']])
+  assert.equal(result.prerequisites.find(entry => entry.implementation === 'client')['requires-selection-review'], true)
+  assert.deepEqual(fixture.cli(['resolve', '--all']).result.selected, originalPairs)
+  const explicit = fixture.cli(['resolve', '--implementation', 'server'])
+  assert.equal(explicit.exitCode, 0)
+  assert.equal(explicit.result['empty-selection'], false)
+  assert.equal(explicit.result.implementations.server.qa, false)
+  assert.equal(fixture.cli(['resolve']).result.errors[0].code, 'selection-required')
   assert.deepEqual(fs.readdirSync(fixture.root, { recursive: true }).sort(), before)
 })
 

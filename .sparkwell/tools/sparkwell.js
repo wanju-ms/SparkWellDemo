@@ -322,7 +322,13 @@ export function loadConfig(root) {
   for (const [name, entry] of Object.entries(config.implementations)) {
     const location = `${CONFIG_PATH}:implementations.${name}`
     identifier(name, location)
-    objectFields(entry, ['source-root'], ['stack', 'depends-on', 'guidance', 'guidance-file'], location)
+    objectFields(entry, ['source-root'], [
+      'stack', 'depends-on', 'guidance', 'guidance-file',
+      'qa', 'qa-guidance', 'qa-guidance-file',
+    ], location)
+    if (Object.hasOwn(entry, 'qa') && typeof entry.qa !== 'boolean') {
+      throw new ToolError('invalid-boolean', 'Expected true or false', `${location}.qa`)
+    }
     const outputRoot = projectPath(root, entry['source-root'], location)
     if (fs.existsSync(outputRoot) && !fs.statSync(outputRoot).isDirectory()) {
       throw new ToolError('invalid-directory', 'source-root must be a directory', location)
@@ -330,11 +336,18 @@ export function loadConfig(root) {
     if (Object.hasOwn(entry, 'guidance') && Object.hasOwn(entry, 'guidance-file')) {
       throw new ToolError('guidance-conflict', 'Use guidance or guidance-file, not both', location)
     }
-    for (const field of ['stack', 'guidance']) {
+    if (Object.hasOwn(entry, 'qa-guidance') && Object.hasOwn(entry, 'qa-guidance-file')) {
+      throw new ToolError('qa-guidance-conflict', 'Use qa-guidance or qa-guidance-file, not both', location)
+    }
+    for (const field of ['stack', 'guidance', 'qa-guidance']) {
       if (Object.hasOwn(entry, field)) textValue(entry[field], `${location}.${field}`)
     }
     if (Object.hasOwn(entry, 'guidance-file')) {
       textValue(readText(projectPath(root, entry['guidance-file'], location, true)), location)
+    }
+    if (Object.hasOwn(entry, 'qa-guidance-file')) {
+      const guidanceLocation = `${location}.qa-guidance-file`
+      textValue(readText(projectPath(root, entry['qa-guidance-file'], guidanceLocation, true)), guidanceLocation)
     }
     for (const target of stringList(optionalList(entry, 'depends-on'), location)) {
       if (!Object.hasOwn(config.implementations, target)) {

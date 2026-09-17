@@ -4,6 +4,8 @@ Configuration reference for `/spark-impl`. `implementations` describe what to
 produce and how; `bindings` associate Sparks with those configurations. A Spark
 can use several configurations, and a configuration can serve many Sparks.
 
+Optional QA fields let `/spark-qa` use the same implementation identities for manual test design.
+
 Configuration can choose frameworks, libraries, service providers, and output
 locations while preserving the model's recorded behavior, data ownership, service
 contracts, and lifecycle guarantees. Model metadata follows the
@@ -36,6 +38,9 @@ or binding IDs. Implementation entries need no nested `id` field.
 | `depends-on` | Optional list of distinct implementation IDs whose outputs this implementation needs. Omission means no dependencies. |
 | `guidance` | Optional non-empty string containing inline implementation instructions. YAML multiline text is allowed. |
 | `guidance-file` | Optional path to a readable Markdown file containing implementation instructions. |
+| `qa` | Optional boolean. `true` marks a default manual-QA target; omission and `false` do not. |
+| `qa-guidance` | Optional non-empty string with target-specific manual-QA context. |
+| `qa-guidance-file` | Optional project-relative path to a readable, non-empty Markdown file with manual-QA context. |
 
 Paths in the YAML use `/`, are relative to the project root, and stay within that
 project. Secrets belong in the project's normal secure configuration.
@@ -58,6 +63,28 @@ Guidance files are plain Markdown without configuration metadata; their filename
 do not define implementation IDs. Document-relative links can reuse shared guidance.
 Native project files remain the source for dependency versions, build commands,
 and established code structure.
+
+## Manual QA
+
+`qa: true` selects a default target for [Spark QA](../.github/skills/spark-qa/SKILL.md) when the request does not name implementations.
+Explicit targets replace those defaults, including entries with `qa: false` or no `qa` field.
+If neither defaults nor explicit targets exist, the Skill asks for targets.
+The flag is not a test-completion marker or an instruction to cover the entire graph.
+It does not change bindings, dependencies, or `/spark-impl` selection.
+The `resolve` command still uses explicit filters; the QA Skill supplies its chosen implementation IDs.
+
+Use `qa-guidance` or `qa-guidance-file`, not both; both may be omitted.
+These fields are independent of implementation `guidance` and `guidance-file` and may be supplied without `qa: true` for explicitly selected targets.
+Record project-specific testing context such as devices, environments, data reset procedures, available fault controls, and execution limits.
+Reference shared project documentation instead of copying it between implementations.
+Keep general QA methods out of the configuration, and specify temporary coverage depth, language, or execution budgets in the request.
+QA guidance does not redefine expected behavior or excuse an implementation that conflicts with accepted Artifacts.
+Implementation guidance is background for QA, not authorization to generate code.
+
+Mark the applications or other manually testable entry points, not every supporting library or contract.
+Dependencies provide relevant context without automatically becoming separate test suites.
+Cases follow business workflows and may verify several Sparks through one or multiple selected targets; contributing design knowledge does not require a direct binding to each tested UI.
+The case documents' locations, traceability, and update workflow are defined by the Skill, not by an implementation's `source-root` or Implementation Map.
 
 ## Bindings
 

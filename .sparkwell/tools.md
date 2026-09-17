@@ -2,12 +2,12 @@
 
 One Node.js command provides configuration checks, Spark selection, and
 [Implementation Map](implementation-map.md) management. It does not generate
-application code or implement the `/spark-impl` workflow.
+application code or manual test cases, or execute the `/spark-impl` and `/spark-qa` workflows.
 
 ## Setup
 
 Node.js 24 or later and npm are required in the environment where the agent runs
-these tools. This is also a prerequisite for the `/spark-impl` workflow,
+these tools. This is also a prerequisite for the `/spark-impl` and `/spark-qa` workflows,
 not for the generated application's runtime. From the project root:
 
 ```sh
@@ -65,6 +65,10 @@ These IDs are examples and must exist in the selected project.
   combined with other selection options. No selection never means all.
 - Binding IDs select named rules, not implementations. Unnamed rules can still
   be selected through their matched Sparks or implementation.
+
+Implementation records include optional `qa`, `qa-guidance`, and `qa-guidance-file` fields from the configuration.
+The `/spark-qa` Skill chooses explicit targets or `qa: true` defaults and passes those IDs as `--implementation` filters.
+`resolve` does not apply QA defaults itself or change selection based on the QA flag; dependencies remain context rather than additional manual-test targets.
 
 The result separates these parts:
 
@@ -140,4 +144,5 @@ npm test --prefix .sparkwell/tools
 
 Tests cover invalid YAML and metadata, path boundaries, matching and dependencies,
 scope separation, stale maps, targeted changes, and failed or concurrent writes.
-They test the tools, not generated application behavior or an implementation Skill.
+They also cover QA config types, guidance files, and compatibility with existing selection behavior.
+They test the tools, not generated application behavior or Skill reliability.
