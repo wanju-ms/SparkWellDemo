@@ -191,6 +191,9 @@ Data Sparks for their data semantics and rules.
 
 ## Organize Artifact Bodies
 
+During incremental updates, apply these writing rules only to new or necessarily changed text unless the user requests a broader rewrite.
+Do not polish accurate existing prose merely to match a preferred style.
+
 Write titles, descriptions, and bodies as a brief, plain explanation to a teammate.
 Use short active sentences and common words; give each sentence one main point and make clear who does what and when.
 Use direct verbs rather than abstract phrases, and avoid formal or academic wording.

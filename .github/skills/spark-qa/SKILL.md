@@ -115,7 +115,9 @@ Ordinary commands for documented setup may be referenced; do not turn the cases 
 
 Inspect existing cases and reread affected files before writing.
 For changes, update the affected scenarios and necessary regression cases while preserving unrelated cases, stable IDs, QA notes, and manual additions.
-Do not replace the whole suite or reflow unchanged paragraphs.
+Make the smallest local edit; keep accurate titles, steps, expectations, setup, order, and line breaks unchanged, including inside affected cases.
+Reuse the suite's wording for the same behavior rather than introducing equivalent phrasing.
+Do not replace the whole suite or apply stylistic cleanup unless explicitly requested.
 A wording-only Spark edit may need no test-case change.
 Explain retired or replaced cases and ask before deleting existing case files or overwriting conflicting QA edits.
 Preserve existing execution records as historical evidence; they do not establish a pass for changed cases.
@@ -123,7 +125,8 @@ Preserve existing execution records as historical evidence; they do not establis
 Review cases against the accepted design, requested depth, platform context, and budget.
 Check that setup is feasible, instructions are concrete, expected results are observable, cases are distinct, and IDs and source links are valid.
 Keep the suite index aligned with added, moved, renamed, or retired cases, and verify its links and the workflow files' return links.
-Remove needless repetition without losing independent checks or important outcomes.
+Remove needless repetition from new or necessarily changed text without losing independent checks or important outcomes.
+Review this invocation's diff against the before-edit text and remove your own wording-only or formatting-only changes unless requested.
 Report the written files, target platforms, covered workflows, and deferred or blocked areas.
 Describe coverage qualitatively; do not infer percentages or complete coverage from case counts or graph reachability.
 

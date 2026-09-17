@@ -179,8 +179,11 @@ When drafting artifacts, apply the Guide's
 
 Before writing, review the drafts together for high-level design depth, clarity,
 and organization using [Organize Artifact Bodies](../../../.sparkwell/design-modeling-guide.md).
-For incremental updates, integrate new knowledge into the owning Artifact's
-existing structure and compare the detail level of new and existing content.
+For incremental updates, start from the owning Artifact's existing text and terminology.
+Preserve accurate wording, headings, order, and line breaks where the meaning is unaffected, unless a rewrite or formatting change was explicitly requested.
+Express new or changed knowledge in the existing style and at a similar level of detail.
+Prefer adding or changing the relevant sentence or clause over rewriting the surrounding paragraph.
+Do not refresh still-accurate titles, frontmatter descriptions, or index cells just because the Artifact was touched.
 Extra detail or a separate section should reflect semantic complexity, not the
 recency of a requirement; reference existing rules instead of restating them.
 
@@ -237,6 +240,9 @@ and [Resolve Context and Review Changes](../../../.sparkwell/design-modeling-gui
 Check that the design covers the agreed delivery boundary and distinguishes
 in-scope responsibilities from deferred work, external guarantees, and mocks.
 Do not treat structural checks as proof of behavioral coverage or working code.
+
+Review this invocation's diff against the before-edit text.
+Remove your own edits that merely restate unchanged meaning or reformat unaffected content unless that cleanup was requested.
 
 Report actual changes with IDs and paths and enough before/after meaning to
 distinguish this invocation from other edits. Include old and new identities for

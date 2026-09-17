@@ -133,6 +133,9 @@ An explicit implementation request authorizes routine work within that scope; do
 require another confirmation for every step. Ask for blocking uncertainty,
 scope expansion, consequential configuration changes, or destructive replacement.
 
+Reuse existing code patterns, names, and wording when they still express the intended behavior.
+Keep unrelated code, comments, documentation, and formatting unchanged; do not refactor, rename, or rewrite equivalent content merely for style unless requested.
+
 Make the smallest coherent change to existing outputs. Re-read relevant files
 before writing and preserve intervening edits; revisit the plan if they materially
 change it. Scaffold an absent target only within the agreed configuration and
@@ -172,6 +175,9 @@ When shared generation is affected, verify that two consumers together and a
 later consumer-only run reuse the same definition and output locations. Use
 focused tests or a scoped rehearsal, and report any unverified repeat-run behavior;
 pair deduplication and valid maps alone do not establish it.
+
+Review this invocation's diff against the before-edit content, including after generators or formatters run.
+Remove your own unnecessary rewrites and formatting changes, while retaining changes required by the task or project tooling.
 
 After output edits and validation-driven fixes, use `map update` to preview and
 persist targeted records with `--write`. Supply each changed path's complete source
