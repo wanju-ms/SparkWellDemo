@@ -216,6 +216,17 @@ every level. Choose headings from the content; keep brief single-topic bodies
 unsectioned. Reorganize existing content rather than adding introductions,
 summaries, or repeated rules.
 
+An optional `Note` can explain that a Spark was initially created based on existing code when that origin is useful to readers.
+It describes the initial source, not a fixed classification or a weaker design commitment.
+
+```markdown
+## Note
+
+Initially derived from code, this Spark evolves through normal design updates.
+It may not reproduce the original code; use existing code for changes.
+Assess its completeness for each new implementation target.
+```
+
 Within sections, prefer flat bulleted lists for multiple distinct points, with
 one meaningful point per item. Use numbered lists when sequence matters. Keep
 short paragraphs for a single point or a connected explanation, and tables for

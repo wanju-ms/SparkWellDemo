@@ -167,16 +167,10 @@ data
 
 反而会失真。
 
-因此 Spark Type 应该被弱化。
+因此分类不应该决定 Spark 的边界，也不应该强迫概念适应分类。
 
-更合理的是：
-
-```yaml
-tags:
-  - authorization
-  - state
-  - service
-```
+当前 `spark-type` 已是可选字段；没有合适分类时可以不填。
+是否用 `tags` 补充或替代它仍待讨论，本轮不改变分类或 metadata 格式。
 
 而 Spark 真正的重要属性应该是：
 
@@ -234,7 +228,7 @@ Updated Spark
 Regenerate Code
 ```
 
-而应该是：
+当设计语义需要变化时，应该是：
 
 ```text
 Current Spark
@@ -248,18 +242,22 @@ Agent
 Code Diff
 ```
 
-也可以简化为：
+这条路径可以简化为：
 
 > **Spark Diff + Existing Code → Code Diff**
 
 但更完整地说，Agent 实际需要的是：
 
 ```text
+Accepted Change Request
++
 Current Spark
 +
-Spark Diff
+Accepted Spark Diff (if needed)
 +
-Implementation Mapping
+Implementation Configuration
++
+Implementation Mapping (when available)
 +
 Existing Code
 +
@@ -274,6 +272,11 @@ Code Diff
 - Existing Code 描述 **How currently**
 - Agent 负责把 semantic change 映射到当前 realization
 
+Spark Diff 可以为空。
+CSS 调整、满足既有规则的缺陷修复，或明确授权的重构，都可能只需要修改实现。
+缺少 Implementation Map 时，应查找现有代码，而不是认为实现不存在。
+模型未描述的实现细节可由现有代码、配置和工程约定提供；只有缺少本次改动必需的语义决定时，才暂停受影响的工作。
+
 因此：
 
 > **Spark controls semantics; Code provides realization context.**
@@ -284,7 +287,10 @@ Code Diff
 
 Brownfield Change 的基本原则应该是：
 
-> **Preserve existing implementation structure unless the accepted Spark change requires otherwise.**
+> **Preserve existing implementation structure unless the authorized change requires otherwise.**
+
+获准的修改可以来自设计变化，也可以是实现层的修复或调整。
+未写进 Spark 的现有行为也应默认保留，不能因此被随意修改。
 
 也就是默认追求：
 
@@ -381,7 +387,7 @@ Spark 只保存其中对 Human Understanding 有价值的 semantic knowledge。
 
 但有一个要求：
 
-> **Spark 不能与 Code 在它已经描述的语义上矛盾。**
+> **在相同的适用范围和版本内，Code 应符合 Spark 已接受的语义承诺。**
 
 例如 Spark 说：
 
@@ -395,7 +401,12 @@ Cancel discards the draft.
 Cancel persists the draft.
 ```
 
-那么 Model 已经 drift。
+这说明二者存在语义不一致，但不能直接断定是 Model 错了。
+应结合需求和证据判断：修复实现、修正模型，还是澄清适用范围。
+不能仅因为代码如此，就自动修改 Spark 来消除差异。
+
+模型也可以保留明确标注的未交付目标，例如 Demo 目前只用内存存储，而持久化仍待实现。
+这不等于目标已满足，也不等于模型对当前状态失实。
 
 ---
 
@@ -417,7 +428,7 @@ Code → Spark → Code
              Code
 ```
 
-可以形式化成：
+对于模型所描述、并声明为已实现的语义范围，可以写成：
 
 ```text
 S ≈ abstraction(C)
@@ -432,16 +443,20 @@ S ≈ abstraction(C)
 
 只要求：
 
-> **S 是 C 在 Human-relevant semantics 上的可信抽象。**
+> **S 对这一范围内的 Code 提供可信的 Human-relevant semantic abstraction，而不是覆盖 Code 的全部细节。**
+
+未交付目标和未知内容应明确说明，不能当作当前实现事实代入这个关系。
 
 发生变化：
 
 ```text
 S + ΔS → S'
-C + S + ΔS → C'
+C + S' + R → C'
 ```
 
-之后仍然需要满足：
+其中 `R` 是本次获准的修改请求，`ΔS` 可以为空。
+
+之后仍需在相关的已实现范围内检查：
 
 ```text
 S' ≈ abstraction(C')
@@ -451,7 +466,7 @@ S' ≈ abstraction(C')
 
 # 11. SparkWell 需要 Consistency Check
 
-这意味着未来一个重要能力是：
+这对应一个重要能力：
 
 > **Spark ↔ Code Consistency Check**
 
@@ -494,6 +509,14 @@ but no related Spark changed.
 
 SparkWell 的一个核心价值必须是尽量发现这种 drift。
 
+当前已有只读的 [Spark Review Skill](.github/skills/spark-review/SKILL.md)，按指定版本、实现和行为范围检查模型与代码。
+它区分有证据支持、可能冲突、明确未交付和证据不足，不自动修改模型、代码或映射。
+“没有找到路径”可能只是证据不足；代码新增了未建模行为，也不自动意味着模型错误。
+是否需要修改模型，取决于它是否影响应维护的责任、规则或承诺。
+
+CLI 的 `check`、`map check` 只校验结构和引用，trace 负责关联变化，都不能证明语义正确性。
+一次审阅也不能保证整个模型可信；结论必须说明已检查的范围和剩余不确定性。
+
 ---
 
 # 12. Descriptive 与 Generative 不是完全不同的 Spark 类型
@@ -502,13 +525,16 @@ SparkWell 的一个核心价值必须是尽量发现这种 drift。
 
 不是所有 Spark 都完整到足以生成新 Implementation。
 
-因此应该区分：
+以下概念帮助讨论用途和信息是否充分，不是两种新的 Spark Type，也不需要新增 metadata 字段。
+是否足以生成实现，需要针对具体目标判断。
+同一个 Spark 对 Web 可能已经足够，对 iOS 仍可能不足；判断也会随模型内容的演进而变化。
+必要时用普通文字说明覆盖范围和限制即可。
 
 ## Descriptive Spark
 
 主要目标：
 
-> **可信地描述当前软件最重要的 semantic knowledge。**
+> **可信地描述所选范围内的重要 semantic knowledge。**
 
 例如：
 
@@ -528,7 +554,7 @@ Implementation:
 - permissionService.ts
 ```
 
-它足够用于：
+在它覆盖的范围内，它可以用于：
 
 - Human Understanding
 - Review
@@ -548,7 +574,8 @@ Spark → 从零生成完整 iOS App
 
 ## Generative Spark
 
-Generative Spark 包含更完整、platform-neutral 的 semantic knowledge。
+对于指定的新实现目标，Generative Spark 包含足够的软件语义，并结合相关模型、实现配置和工程约定来启动实现。
+共享语义尽量保持 platform-neutral，但足够支持一个目标并不代表足够支持所有平台。
 
 例如：
 
@@ -573,7 +600,7 @@ Todo Editing
 
 因此：
 
-> **Generative = contains enough semantic information to bootstrap a new realization.**
+> **Generative = contains enough semantic information to bootstrap a specified realization within an agreed scope.**
 
 ---
 
@@ -581,47 +608,70 @@ Todo Editing
 
 进一步讨论后发现：
 
-`descriptive` / `generative` 更像 completeness 状态，而不是固定 Spark Type。
+`descriptive` / `generative` 描述模型用途和针对某个目标的信息充分程度，而不是永久分类或需要存储的状态。
 
-一个 Spark 可以：
+针对一个目标，模型可以逐渐补充：
 
 ```text
 Descriptive
     ↓
 逐渐补充
     ↓
-Generative
+Enough to bootstrap that target
 ```
 
-之后又因为 Code 发生了未同步变化：
+代码变化后，应先判断是否影响模型所描述的语义：
 
 ```text
-Generative
+Code Change
     ↓
-manual code change
-    ↓
-model drift
-    ↓
-Generative guarantee lost
+Check Modeled Semantics
+    ├── Unchanged → Spark may remain unchanged
+    └── Possible conflict → Review evidence and scope
 ```
 
-同步之后：
+发现不一致后：
 
 ```text
-Code Diff
+Possible Inconsistency
     ↓
-Proposed Spark Diff
+Review Model, Code, and Scope
     ↓
-Human Review
+Approved Code Fix or Model Update
     ↓
-Consistency restored
+Recheck Relevant Semantics
 ```
 
-于是它重新成为可信的 Generative Model。
+恢复的是对应范围内的语义一致性，不自动证明模型足够完整，也不自动恢复某种生成保证。
+纯实现细节变化不必触发模型更新，更不能仅因手工改过代码就判定生成能力失效。
 
 因此：
 
-> **Generative is a capability / guarantee, not a permanent type.**
+> **Generative is a target-dependent capability, not a permanent type or a correctness guarantee.**
+
+## 初始来源与正文组织
+
+Spark 可以由人或 Agent 根据既有代码提炼，也可以先设计再实现。
+来源不决定当前能力：最初从代码创建的 Spark，之后也可能通过设计流程补充新的行为承诺。
+
+既有实现的重要行为可以成为当前设计基线，不需要先有 Spark 才构成约定。
+提炼时仍应区分重要语义、实现机制、已知局限和疑似缺陷，再通过正常模型评审确认。
+正文照常按责任、行为、规则和协作组织，不要求 `Observed` 等特殊章节，也不增加独立维护流程。
+必要的平台范围、证据和不确定性可以直接用文字说明。
+
+如果初始来源值得提醒读者，可以使用可选的 `Note`，例如：
+
+```markdown
+## Note
+
+本 Spark 最初基于既有代码创建，后续按正常设计流程演进。
+它不保证完整还原原有代码；后续修改应结合现有实现。
+是否足以生成新实现，需要针对具体目标判断。
+```
+
+这是示例文案，可以改写、缩短或省略，不是固定模板或必填章节。
+它说明初始来源和使用边界，不降低正文中已接受规则的约束力，也不要求 Skills 对标题做特殊处理。
+可复用示例放在[建模指南](.sparkwell/design-modeling-guide.md)，无需单独模板文件或 metadata。
 
 ---
 
@@ -633,24 +683,24 @@ Consistency restored
 
 回答：
 
-> Spark 是否真实反映当前 Implementation？
+> Spark 是否对自己声明的范围诚实、可信，区分了当前行为、已接受的承诺、未交付目标和未知内容？
 
 ## Completeness
 
 回答：
 
-> Spark 是否完整到足以生成一个新的 realization？
+> 当前模型结合实现配置和工程约定，是否足以启动指定范围的新 realization？
 
 于是存在：
 
-| | Incomplete | Complete |
+| | 对指定目标信息不足 | 对指定目标信息充分 |
 |---|---|---|
-| **Consistent** | Trusted Descriptive | Trusted Generative |
-| **Inconsistent** | Stale Descriptive | Generative guarantee lost |
+| **所述语义有证据支持** | 可支持理解与局部演进 | 可作为该目标的启动依据，仍需验证 |
+| **存在冲突或证据不足** | 先处理相关问题 | 信息充分也不能代替语义核验 |
 
 这很重要，因为：
 
-> 一个 Spark 可以完全正确，但仍不足以生成 iOS。
+> 一个 Spark 可以在声明的范围内可信，但仍不足以生成 iOS。
 
 例如：
 
@@ -658,14 +708,16 @@ Consistency restored
 Application Runtime
 ```
 
-可以 100% 正确描述当前 Web App。
+可以准确描述已检查的 Web 应用职责。
 
 但它没有描述完整 UI、interaction、state lifecycle 等，因此仍然：
 
 ```text
-trustworthy = yes
-generative = no
+reviewed claims = supported
+sufficient to bootstrap iOS = not established
 ```
+
+这些是针对范围和目标的判断，不是需要写入 Spark 的布尔字段。
 
 ---
 
@@ -678,7 +730,7 @@ generative = no
 
 中文：
 
-> **所有 Spark 都应该真实反映软件语义，但不是所有 Spark 都必须完整到足以生成新的 Implementation。**
+> **允许一个模型不够全面，但要求它对自己声明的范围诚实、可信。**
 
 这让 SparkWell 不需要为了“可生成”而把所有细节都塞进 Model。
 
@@ -709,9 +761,10 @@ Agent analyzes semantic change
     ↓
 Compare with current Spark
     ↓
-Proposed Spark Diff
-    ↓
-Human Review
+Review Findings
+    ├── No maintained meaning changes → Keep Spark unchanged
+    ├── Implementation defect → Propose code fix
+    └── Model change needed → Proposed Spark Diff → Human Review
 ```
 
 因此变化可以从两边发起：
@@ -751,9 +804,9 @@ Double-click title enters edit mode.
 
 这可能只是 Web-specific interaction。
 
-iOS 并不存在 Double-click。
+这不意味着 iOS 必须提供相同手势。
 
-因此不应该污染 shared semantic model。
+因此不应把该 Web-specific interaction 自动变成 shared semantic model 的要求。
 
 ---
 
@@ -808,7 +861,9 @@ Is this:
 3. Pure implementation detail?
 ```
 
-只有第一类一定需要更新 Shared Spark。
+影响已维护共享语义的变化，需要更新 Shared Spark。
+平台特有的重要行为可以在明确限定范围的 Artifact 中维护；普通实现选择可放在目标 guidance 或现有工程约定中。
+这不要求新的模型层，也不要求记录全部实现细节。
 
 ---
 
@@ -834,16 +889,16 @@ Agent 可能改变：
 
 Generative 的真正含义是：
 
-> **Spark 包含足够的软件语义，可以从零创建一个有效的新 realization。**
+> **Spark 对特定目标和范围提供足够的软件语义，结合实现配置启动新 realization，再通过实现验证检查结果。**
 
 ---
 
 # 20. Bootstrap 与 Evolution 应该采用不同模式
 
-对于一个全新的 platform realization：
+对于一个全新的 platform realization，在相关语义与目标配置足够明确时：
 
 ```text
-Generative Spark
+Sufficient Spark Model + Target Configuration
       ↓
 Generate from scratch
       ↓
@@ -859,7 +914,7 @@ New iOS / Web / Android implementation
 应该使用：
 
 ```text
-Spark Diff
+Current Spark + Change Request + Optional Spark Diff
     +
 Existing Web Code
     ↓
@@ -869,7 +924,7 @@ Web Code Diff
 或者：
 
 ```text
-Spark Diff
+Current Spark + Change Request + Optional Spark Diff
     +
 Existing iOS Code
     ↓
@@ -921,7 +976,7 @@ Existing Code 保留：
 ```text
 Current Spark
     +
-Spark Diff
+Change Request + Optional Spark Diff
     +
 Existing Code
     ↓
@@ -954,6 +1009,7 @@ Minimal Code Diff
 | 从零生成完整新 Platform | 不一定 |
 
 因此 Generative 并不是 SparkWell 存在的必要条件。
+表中的“适用”表示这些工作可以利用有限模型，不代表现有工具已自动完成它们，也不代表对未建模部分有完整覆盖。
 
 ---
 
@@ -991,7 +1047,7 @@ Generate
 
 ## Greenfield
 
-如果 Spark 足够完整：
+如果模型对本次目标与范围足够完整：
 
 ```text
 Requirement
@@ -1000,7 +1056,7 @@ Spark Graph
     ↓
 Human Review
     ↓
-Generate Initial Implementation
+Generate Initial Implementation with Target Configuration
 ```
 
 例如 Todo Demo。
@@ -1016,26 +1072,34 @@ Existing Code
     ↓
 Agent-assisted abstraction
     ↓
-Candidate Descriptive Sparks
+Candidate Sparks
     ↓
 Human Review
     ↓
 Accepted Spark Model
 ```
 
+当前可以由人和 Agent 按具体情况完成抽象，使用 `/spark-design` 提案、确认并维护模型，不要求独立的自动 Brownfield 建模工具。
+模型确认后，可在另行授权的映射维护范围内给未修改的既有代码补充 [Implementation Map](.sparkwell/implementation-map.md)。
+现有 `map show`、`map check`、`map update` 已支持查看、校验、预览和定向写入；先审阅关联，再用 `--write` 保存。
+映射表达代码与模型的关联，不证明代码历史上由该模型生成，也不证明实现完整或正确。
+
 之后的 Change：
 
-```text
-Requirement
-    ↓
-Spark Diff
-    ↓
-Human Review
-    ↓
-Spark Diff + Existing Code
-    ↓
-Code Diff
+```mermaid
+flowchart TD
+    Request["Change Request"] --> NeedModel{"Model change needed?"}
+    NeedModel -->|No| Keep["Keep Spark unchanged"]
+    NeedModel -->|Yes| Proposal["Proposed Spark Diff"]
+    Proposal --> Review["Human Review"]
+    Review --> Model["Accepted Spark Model"]
+    Keep --> Work["Authorized Implementation Work"]
+    Model --> Work
+    Work --> Code["Code Diff using current Spark, request, and existing code"]
 ```
+
+设计流程可以以“模型无需修改”结束，但这不代表实现无需修改。
+实现仍需要自己的授权范围，不能因模型已确认而自动开始。
 
 如果人直接改 Code：
 
@@ -1044,9 +1108,10 @@ Manual Code Diff
     ↓
 Semantic Analysis
     ↓
-Does this affect Shared Spark?
-        ├── No → keep Spark unchanged
-        └── Yes → propose Spark Diff
+Compare with Applicable Model Commitments
+    ├── No modeled change needed → Keep Spark unchanged
+    ├── Implementation defect → Propose code fix
+    └── Model change needed → Propose Spark Diff for review
 ```
 
 ---
@@ -1055,33 +1120,29 @@ Does this affect Shared Spark?
 
 这轮讨论之后，SparkWell 更准确的模型可以表达为：
 
-```text
-                     Requirement
-                         ↓
-                    Spark Change
-                         ↓
-                     Spark Diff
-                         ↓
-                    Human Review
-                         ↓
-                  Accepted Semantics
-                         ↓
-              ┌──────────┴──────────┐
-              ↓                     ↓
-      Existing Realization     New Realization
-              ↓                     ↓
- Spark Diff + Existing Code    Generative Spark
-              ↓                     ↓
-          Code Diff             Initial Code
-              ↓                     ↓
-              └──────────┬──────────┘
-                         ↓
-                 Implementation
-                         ↓
-              Semantic Consistency
-                         ↕
-                    Spark Model
+```mermaid
+flowchart TD
+    Request["Change Request"] --> NeedModel{"Model change needed?"}
+    NeedModel -->|No| Current["Use current Spark"]
+    NeedModel -->|Yes| Proposal["Proposed Spark Diff"]
+    Proposal --> Review["Human Review"]
+    Review --> Accepted["Accepted Spark Model"]
+    Current --> Work["Authorized Implementation Work"]
+    Accepted --> Work
+    Work --> Target{"Existing implementation?"}
+    Target -->|Yes| Evolve["Current Spark + Request + Existing Code"]
+    Target -->|No| Bootstrap["Sufficient Model + Target Configuration"]
+    Evolve --> Diff["Code Diff"]
+    Bootstrap --> Initial["Initial Code"]
+    Diff --> Implementation["Implementation"]
+    Initial --> Implementation
+    Implementation --> Check["Scoped Semantic Review"]
+    Current -.-> Check
+    Accepted -.-> Check
 ```
+
+输入还包括相关配置、映射和工程约定，详见第 6 节。
+审阅发现差异后，再决定是否修实现、修模型或澄清范围，不自动让任何一方迁就另一方。
 
 而手工修改 Code 也可以进入同一个 Loop：
 
@@ -1090,16 +1151,10 @@ Manual Code Change
         ↓
 Semantic Analysis
         ↓
-Shared semantic change?
-   ├── No
-   │    ↓
-   │ Platform / implementation-only
-   │
-   └── Yes
-        ↓
-Proposed Spark Diff
-        ↓
-Human Review
+Compare with Applicable Model Commitments
+     ├── No modeled change needed → Keep Spark unchanged
+     ├── Implementation defect → Propose code fix
+     └── Model change needed → Proposed Spark Diff → Human Review
 ```
 
 ---
@@ -1122,11 +1177,12 @@ Spark 的边界由“人是否值得把它作为独立 Concept 理解”决定�
 
 ### Trustworthy First
 
-所有 Spark 都应该真实反映当前软件语义。
+模型可以不全面，但必须对自己声明的范围诚实、可信。
 
 ### Generative Is Optional
 
 不是所有 Spark 都必须完整到可以生成新 Implementation。
+信息是否足够取决于目标和范围，不需要新的 metadata 分类。
 
 ### Spark Is Not a Compiler IR
 
@@ -1137,8 +1193,10 @@ Spark 不需要完整表达所有 implementation semantics。
 Brownfield Change 应该基于：
 
 ```text
-Spark Diff + Existing Code → Code Diff
+Current Spark + Change Request + Existing Code → Code Diff
 ```
+
+需要模型变化时纳入已接受的 Spark Diff；否则 Spark 可以保持不变。
 
 ### Preserve Realization Continuity
 
@@ -1147,6 +1205,7 @@ Spark Diff + Existing Code → Code Diff
 ### Model and Code Must Stay Semantically Consistent
 
 Spark 与 Code 可以包含不同粒度的信息，但不能在共有语义上矛盾。
+发现差异时按证据判断修复哪一方，并区分明确未交付的目标和未知内容。
 
 ### Change Can Start From Either Side
 
@@ -1174,12 +1233,12 @@ Implementation-only change
 
 ### Generation for Bootstrap, Diff for Evolution
 
-新平台可以从 Generative Spark 初始化。
+新平台可以从针对目标足够完整的模型和配置初始化，结果仍需验证。
 
 已有平台后续应该：
 
 ```text
-Spark Diff + Existing Code → Code Diff
+Current Spark + Change Request + Existing Code → Code Diff
 ```
 
 ### Spark Stabilizes Meaning; Code Stabilizes Realization
@@ -1198,7 +1257,7 @@ Code 负责具体实现连续性。
 
 更准确的是：
 
-> **SparkWell 在 Code 之上维护一层可信、面向人的 Semantic Model；Spark 保存软件的 Concept、Intent 和重要行为，Code 保存具体 Realization。新实现可以从足够完整的 Spark 启动，而已有实现则通过 Spark Diff + Existing Code 的方式持续演进，并通过 semantic consistency 保持 Model 与 Code 对齐。**
+> **SparkWell 在 Code 之上维护一层可信、面向人的 Semantic Model；Spark 保存软件的 Concept、Intent 和重要行为，Code 保存具体 Realization。模型可以不全面，但应对声明范围诚实、可信；新实现按目标判断信息是否足够，已有实现结合当前模型、获准的修改请求和现有代码增量演进，必要时更新 Spark，并通过有证据、有范围的审阅检查二者的语义一致性。**
 
 这个模型既允许：
 
