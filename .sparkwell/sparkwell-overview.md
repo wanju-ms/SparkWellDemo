@@ -17,6 +17,12 @@ design decisions. Keep clear which statements are product commitments and which
 are chosen mechanisms, without separating them into modeling layers. Code
 describes the implementation; it does not silently redefine those commitments.
 
+A model may cover only part of the software and still be useful.
+Within its stated scope, distinguish accepted commitments, observed implementation behavior, explicitly deferred goals, and unknowns.
+Support claims about current behavior with evidence, and do not present partial coverage as a complete description.
+An implementation detail absent from the model is not a conflict; behavior contradicting an applicable commitment requires review.
+Being complete enough to bootstrap a new implementation depends on the target and task, and is not required of every Spark.
+
 ## Knowledge Artifacts
 
 Artifact is the common term for a document in the model. Its kind identifies the

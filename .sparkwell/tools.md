@@ -136,6 +136,19 @@ file replacement, and take a short-lived exclusive lock. Contention reports
 If a terminated process leaves a lock, confirm no writer is active before removing
 that stale lock. No persistent run-status or selection files are created.
 
+### Map Existing Code
+
+The same commands can register associations for files that already existed before the model, without changing those files.
+
+1. Select the mapping scope and the registered implementation whose `source-root` contains the files; inspect existing records with `map show`.
+2. Read the accepted Artifacts and relevant code to identify the responsibilities or rules connecting each proposed pair; keep uncertain candidates separate.
+3. Prepare targeted upserts or removals, retaining each changed path's complete valid source list, and run `map update` without `--write` to preview.
+4. Review the associations and preview, then use `--write` only within the authorized mapping scope and run `map check` for that implementation.
+
+Successful validation checks structure and references, not the truth or completeness of an association.
+Keep evidence and unresolved questions in the review rather than adding status fields to the map.
+Design-only and read-only review workflows can propose this follow-up, but do not perform its writes.
+
 ## Tests
 
 [tools/test-sparkwell.js](tools/test-sparkwell.js) uses Node's built-in test runner

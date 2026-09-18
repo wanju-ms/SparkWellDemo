@@ -76,9 +76,12 @@ npm ci --prefix .sparkwell/tools
 ```
 
 - [Spark Design](.github/skills/spark-design/SKILL.md): use `/spark-design` to discuss a requirement or change, then confirm the design before updating Artifacts.
+- [Spark Review](.github/skills/spark-review/SKILL.md): use `/spark-review` for a read-only comparison of scoped model claims and existing code, with evidence, possible conflicts, and explicit uncertainty.
 - [Spark Implementation](.github/skills/spark-impl/SKILL.md): use `/spark-impl` to implement the selected, confirmed design, reuse existing code, and verify changes.
 - [Spark QA](.github/skills/spark-qa/SKILL.md): use `/spark-qa` to create or update human-readable manual test cases by platform and business workflow, with the requested coverage and execution budget. It does not run tests.
 - [Spark Trace](.github/skills/spark-trace/SKILL.md): use `/spark-trace` with two revisions or local changes to produce a temporary JSON linking code diff blocks to design changes and their rationale.
+
+CLI `check` and `map check` validate structure and references; `/spark-review` assesses scoped semantic agreement, while `/spark-trace` associates changes rather than verifying their correctness.
 
 Reference material:
 

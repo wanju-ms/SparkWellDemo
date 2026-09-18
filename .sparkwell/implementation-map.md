@@ -1,7 +1,7 @@
 # Implementation Map
 
-An Implementation Map records which model Artifacts contributed to existing
-implementation files. It supports lookup and impact analysis, not progress tracking.
+An Implementation Map records file-level associations between model Artifacts and existing implementation files.
+It supports lookup and impact analysis, not progress tracking.
 Bindings describe intended associations; maps describe actual outputs.
 
 ## Location
@@ -46,6 +46,8 @@ IDs make a map stale; they do not authorize deleting files or inferring a rename
 
 - A file can implement several Artifacts; an Artifact can contribute to several
   files and implementations.
+- Existing code can be mapped after a model is created, without changing or regenerating the code.
+  `derived-from` names the modeled knowledge the file realizes; it does not prove that the Artifact preceded or generated the file.
 - Code, tests, and interface definitions can be mapped. Build outputs, caches,
   lock files, and generic tooling are not mapped merely because they were created.
 - A missing map or entry does not prove that an implementation is absent.
@@ -54,6 +56,13 @@ IDs make a map stale; they do not authorize deleting files or inferring a rename
 - Validation failure does not erase the fact that a file was created or changed.
 - Maps contain no completion flags, test results, content hashes, timestamps,
   credentials, or copies of model definitions.
+
+## Map Existing Code
+
+A human or agent can propose associations by inspecting accepted Artifacts and the existing code, with the connecting responsibilities or rules as evidence.
+Similar filenames, reading a document, or sharing a source directory alone does not establish an association.
+Mapping work needs its own authorized scope; a design-only or read-only review does not authorize map writes.
+Use the existing preview and targeted update workflow in [Tools](tools.md); no code edit or generation run is required.
 
 ## Targeted Changes
 

@@ -30,9 +30,11 @@ detail needs another Spark or user decision.
 
 If code or configuration conflicts with a sound model, correct that implementation
 choice within the agreed scope rather than weakening the model.
-If the model is incomplete, contradictory, infeasible, or unsuitable, explain the
-issue and recommend a design change. Pause the affected implementation and ask for
-that separate update through `/spark-design`, with its design-confirmation step.
+For an existing implementation, missing detail alone is not a reason to expand the model or stop work.
+Use the accepted request, existing code, configured guidance, and repository conventions for details the model leaves open, while preserving its commitments.
+A model that cannot bootstrap a new implementation can still guide an incremental change.
+Pause only work that needs a missing semantic decision or is affected by contradictory, infeasible, or unsuitable model commitments.
+Explain the blocker and ask for clarification; when an Artifact change is needed, request that separate update through `/spark-design` with its design-confirmation step.
 
 For this handoff, use a separate confirmation with a prominent heading in the
 user's language stating that Spark/Artifact files will be changed. Show the

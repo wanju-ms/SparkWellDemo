@@ -102,6 +102,10 @@ scope. Check potential impact even when relationships are missing or stale.
 
 ## Discover and Clarify
 
+Use the Guide to judge how complete the model needs to be for the requested task.
+When describing existing software, use the scenario checks below to establish what is supported, not to complete or redesign the existing system.
+Identify the inspected implementation and revision in the proposal, with evidence for current-behavior claims and limits on coverage.
+
 Before choosing artifacts, examine the requested scenarios for candidate
 interaction spaces, data concepts, and coordinating responsibilities, including
 ones not yet represented in the model. Use the Guide to check whether an
@@ -187,13 +191,12 @@ Do not refresh still-accurate titles, frontmatter descriptions, or index cells j
 Extra detail or a separate section should reflect semantic complexity, not the
 recency of a requirement; reference existing rules instead of restating them.
 
-Before creating, modifying, moving, or deleting artifacts, present one coherent,
-reviewable high-level design for the requested scope. Make the key responsibilities,
-data and contracts, state flow, collaboration outcomes, and consequential choices
-understandable before asking for confirmation. This is the default first design
-deliverable, not merely an artifact list or feature summary. Completeness means
-coverage of these design decisions, not code-level detail; follow the Guide's
-design depth. Fully formatted drafts of every file are unnecessary.
+Before creating, modifying, moving, or deleting artifacts, present one coherent, reviewable proposal for the requested scope.
+For new or changed behavior, make the key responsibilities, data and contracts, state flow, collaboration outcomes, and consequential choices understandable before asking for confirmation.
+When describing existing software, present the supported abstraction of the inspected implementation, its evidence, and the limits of what is known; do not fill gaps with proposed behavior.
+This is the default first deliverable, not merely an artifact list or feature summary.
+Judge completeness using the Guide's task scope, not the ability to regenerate the implementation.
+Fully formatted drafts of every file are unnecessary.
 
 Include scope and comparison basis, proposed artifact names, IDs, kinds, and
 purpose or change; list deletions separately. Explain non-obvious boundaries and

@@ -18,7 +18,9 @@ those commitments from mechanisms and design rationale in the owning artifact.
 Unresolved product or design choices remain open; a missing decision is not
 permission to invent a requirement.
 
-Aim for a complete high-level design within scope, not a prose implementation.
+Judge completeness against the task, not the entire product or the ability to bootstrap a new implementation.
+When describing existing software, record the part supported by inspected code and other evidence; identify unknowns and uncovered scope without inventing behavior to complete the model.
+For new or changed behavior, aim for a coherent high-level design within the agreed delivery scope, not a prose implementation.
 Retain the concepts, key contracts, state lifecycles, and collaborations needed
 to understand how the requested behavior works. Include detail when it changes
 a boundary, rule, collaborator's expectations, or consequential design tradeoff.
