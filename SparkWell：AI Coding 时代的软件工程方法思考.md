@@ -3,6 +3,7 @@
 > **关于软件理解、设计意图（Intent）、评审（Review）与持续演进的一次实验**
 
 本文展开方法与待验证的问题。简要介绍见[极简版](SparkWell：AI%20Coding%20时代的软件工程方法思考%20（极简版）.md)；想先看实际过程，可以直接读[第 10 节 Todo Demo](#10-todo-demo)。
+既有项目的模型来源、可信范围和增量演进，另见 [Brownfield 讨论](SparkWell：Brownfield、Descriptive%20Spark%20与%20Generative%20Spark%20的完整结论.md)。
 
 ## 1. AI Coding 正在改变软件工程
 
@@ -327,7 +328,14 @@ Synchronization
 
 当前用 Markdown 文档保存这些知识，用少量 YAML 元数据记录身份和关系。维护的是当前已确认的设计，不是所有聊天内容；历史和被否决的方案继续通过 Git、PR、Issue 等追溯。
 
+Spark 既可以从需求讨论形成，也可以从既有实现中提炼重要语义，经评审后成为当前设计基线。
+模型可以只覆盖软件的一部分，但必须对声明范围诚实、可信，明确未交付目标和未知内容。
+
 设计评审和设计文档本身并不新。SparkWell 尝试把这份设计接入持续开发：`/spark-design` 讨论并维护相关 Sparks，确认后由 `/spark-impl` 据此实现。项目 instructions 和 Skills 说明怎么工作，Spark 保留这个项目已经决定做什么、由谁负责。能否比现有做法更有效，仍需要实际验证。
+
+对已有实现，Agent 结合当前模型、获准的修改请求、相关配置和映射、已有代码及工程约定做增量修改。
+不影响已维护的设计语义时，可以只改实现，不制造 Spark Diff。
+模型未描述与本次任务无关的细节，不应阻塞现有代码的局部修改；缺少本次必需的语义决定时，才暂停受影响的工作并澄清。
 
 ---
 
@@ -501,6 +509,7 @@ useTodoDraft.ts
 ## 8. Model Once, Realize Many Ways
 
 同一个 Model 也可以支持不同 Implementation。
+能否从零启动某个新实现，需要结合目标、范围、模型内容和实现配置判断，不要求每个 Spark 都足以生成任意平台。
 
 例如同一个 `Todo Editor` Spark 可以分别实现为：
 
@@ -578,6 +587,10 @@ Which related concepts should be inspected?
 
 然后再进入具体 Code Review。
 
+当前的 [Spark Review](.github/skills/spark-review/SKILL.md) 可以按指定版本、实现和行为范围对照模型声明与代码，报告有证据支持、可能冲突、明确未交付或证据不足。
+它只读审阅，不自动修改任何一方，也不证明整体正确。
+发现差异后，需要结合证据决定修复实现、修正模型还是澄清范围；审阅不替代测试和运行验证。
+
 ---
 
 ### 保存长期 Intent
@@ -611,7 +624,8 @@ Spark Graph 可以在：
 
 ### 保持 Mental Model 的连续性
 
-Implementation 可以频繁重写，但稳定的 Conceptual Model 可以继续存在。
+Implementation 会持续演进，但稳定的 Conceptual Model 可以继续存在。
+已有实现默认保留结构和无关行为，只做获准修改所需的变化。
 
 因此：
 

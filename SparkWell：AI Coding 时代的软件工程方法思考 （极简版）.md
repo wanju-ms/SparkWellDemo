@@ -20,6 +20,7 @@ flowchart LR
 ```
 
 Spark Graph 是比具体代码更高层、更稳定的软件表示。它描述 Concept、Intent 和 Relationship，而具体 Implementation 可以有多种。
+模型不必覆盖所有实现细节，但应对自己声明的范围诚实、可信。
 
 ---
 
@@ -37,7 +38,7 @@ Code
 
 人往往直接 Review 最后的 Implementation。
 
-SparkWell 希望变成：
+对于新功能，SparkWell 希望先讨论并确认设计：
 
 ```text
 Requirement
@@ -62,7 +63,10 @@ Code
 
 如果设计有问题，可以直接修改 Spark Graph，而不是等大量代码生成以后再从 Implementation 中发现问题。
 
-确认以后，再由 Agent 依据 Spark Graph，结合目标平台和已有工程生成或修改代码。后续需求变化时，也回到这份设计讨论和更新。
+确认以后，再由 Agent 依据 Spark Graph，结合目标平台和已有工程生成或修改代码。
+
+已有项目也可以先从代码提炼重要语义，经评审后纳入 Spark。
+后续修改结合当前模型、具体请求和现有代码增量进行；不涉及模型语义变化时，Spark 可以保持不变。
 
 设计评审本身并不新。SparkWell 尝试把确认后的设计持续维护下来，让它成为后续修改和不同实现的共同依据，而不只是某次代码生成前的一份计划。
 
@@ -93,6 +97,7 @@ Review the software model first
 ## 同一份 Spark 设计，可以有多个实现
 
 Spark Graph 保留相对稳定的软件概念、Intent 和重要设计决定，不要求所有实现都使用同一种技术。
+能否从零启动某个新实现，仍需针对目标和范围，结合模型内容与实现配置判断。
 
 因此同一个 Spark Graph 可以支持不同实现：
 
@@ -111,10 +116,11 @@ Spark Graph 保留相对稳定的软件概念、Intent 和重要设计决定，�
 
 ## 一句话总结
 
-> **SparkWell 在 Requirement 和 Code 之间增加一层可理解、可 Review、可复用的 Spark Graph，让 Engineer 先 Review 软件设计和 Intent，再让 Agent 生成具体实现。**
+> **SparkWell 在代码之上维护一层可理解、可评审、可复用的软件模型，让人和 Agent 围绕重要语义协作，并结合现有代码持续演进。**
 
 它希望解决的不是“怎么让 AI 写更多代码”，而是：
 
 > **当 AI 越来越会写代码以后，人如何继续掌握软件本身。**
 
 这是一个仍在验证的方法实验。进一步的分析见[软件工程方法思考](SparkWell：AI%20Coding%20时代的软件工程方法思考.md)，也可以直接看其中的 [Todo Demo](SparkWell：AI%20Coding%20时代的软件工程方法思考.md#10-todo-demo)，了解从需求、设计、多端实现到增量修改的完整过程。
+既有项目的建模与演进，见 [Brownfield 讨论](SparkWell：Brownfield、Descriptive%20Spark%20与%20Generative%20Spark%20的完整结论.md)。
