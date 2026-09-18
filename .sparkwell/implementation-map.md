@@ -63,6 +63,7 @@ A human or agent can propose associations by inspecting accepted Artifacts and t
 Similar filenames, reading a document, or sharing a source directory alone does not establish an association.
 Mapping work needs its own authorized scope; a design-only or read-only review does not authorize map writes.
 Use the existing preview and targeted update workflow in [Tools](tools.md); no code edit or generation run is required.
+[Spark Discover](../.github/skills/spark-discover/SKILL.md) can include Artifacts, configuration, and maps in one confirmed proposal when adopting existing code.
 
 ## Targeted Changes
 

@@ -1,6 +1,6 @@
 # Implementation Configuration
 
-Configuration reference for `/spark-impl`. `implementations` describe what to
+Configuration reference for `/spark-impl` and `/spark-discover`. `implementations` describe what to
 produce and how; `bindings` associate Sparks with those configurations. A Spark
 can use several configurations, and a configuration can serve many Sparks.
 
@@ -15,7 +15,8 @@ When a configuration choice affects behavior or lifecycle guarantees, first use
 [Resolve Delivery Scope in the Guide](design-modeling-guide.md) to distinguish
 delivery limits from changes to model commitments. If Artifact files need editing,
 obtain separate, explicit approval for those files through
-[Spark Design](../.github/skills/spark-design/SKILL.md).
+[Spark Design](../.github/skills/spark-design/SKILL.md) or, for existing-code adoption,
+[Spark Discover](../.github/skills/spark-discover/SKILL.md).
 
 ## Central File
 

@@ -69,12 +69,13 @@ to a disposable API when running `swift test`; those tests write data there.
 
 ## Work with Sparks
 
-Install the SparkWell tools' dependencies before using the implementation, QA, or trace Skills:
+Install the SparkWell tools' dependencies before using the discovery, implementation, QA, or trace Skills:
 
 ```sh
 npm ci --prefix .sparkwell/tools
 ```
 
+- [Spark Discover](.github/skills/spark-discover/SKILL.md): use `/spark-discover` to analyze existing code and, after confirming the proposal, record Sparks, implementation configuration, and file mappings without changing application code.
 - [Spark Design](.github/skills/spark-design/SKILL.md): use `/spark-design` to discuss a requirement or change, then confirm the design before updating Artifacts.
 - [Spark Review](.github/skills/spark-review/SKILL.md): use `/spark-review` for a read-only comparison of scoped model claims and existing code, with evidence, possible conflicts, and explicit uncertainty.
 - [Spark Implementation](.github/skills/spark-impl/SKILL.md): use `/spark-impl` to implement the selected, confirmed design, reuse existing code, and verify changes.

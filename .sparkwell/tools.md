@@ -10,7 +10,7 @@ It does not infer semantic links or render a review UI.
 ## Setup
 
 Node.js 24 or later and npm are required in the environment where the agent runs
-these tools. This is also a prerequisite for the `/spark-impl`, `/spark-qa`, and `/spark-trace` workflows,
+these tools. This is also a prerequisite for the `/spark-discover`, `/spark-impl`, `/spark-qa`, and `/spark-trace` workflows,
 not for the generated application's runtime. From the project root:
 
 ```sh
