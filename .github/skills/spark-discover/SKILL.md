@@ -64,6 +64,10 @@ Identify platform-specific scope, inspected conditions, unknowns, and uncovered 
 A useful partial model is a valid result; do not fill uninspected behavior with invented decisions or require enough detail to recreate the entire implementation.
 Explain which nearby candidates remain implementation details or belong to an existing owner when that helps justify the boundary.
 
+Before presenting the proposal, check the draft against a plausible change within its stated scope, using the Guide's criteria for useful detail.
+Can the draft and its model references identify the responsible owner, behavior or constraints to change or preserve, and collaborators to review without reconstructing those decisions from code?
+Use the check to add evidence-backed knowledge or remove unnecessary component-internal explanations, not to add hypothetical requirements or a checklist section to the Artifact.
+
 Write ordinary Artifact bodies under the existing specification, not a special code-derived format.
 `spark-type` is optional; do not force a category, introduce tags, or add descriptive/generative metadata.
 The Guide's initial-origin `Note` is optional and can be adapted; it is not a required section or a claim that the model cannot support a new implementation.

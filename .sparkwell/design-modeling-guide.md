@@ -30,6 +30,8 @@ responsibility or protocol rather than spreading the same detail over more
 artifacts. Preserve meaningful conditions instead of cutting them to meet a
 word count.
 
+Within its scope, the model should support understanding and reviewing the design, and assessing how changes affect responsibilities, behavior, constraints, and collaborations.
+
 ## Resolve Delivery Scope
 
 Distinguish intended system behavior, the project's responsibility boundary, and
@@ -111,6 +113,8 @@ Name the knowledge owner by meaning, not by where a rule is displayed, executed,
 or first discovered. A domain rule can be owned by one Spark and enforced by
 several collaborators. The root or current caller does not automatically own it.
 
+When describing dependencies, retain the capabilities relied on, their relevant conditions, and important interactions rather than explaining each referenced component's internals.
+
 For UI Sparks, retain agreed interaction spaces, actions, navigation, states,
 and visual requirements. Design references and interaction notes can be clearer
 than prose; a Figma component is not a mandatory Spark boundary. For other
@@ -128,6 +132,8 @@ deployment boundaries unexplained.
 If a new platform or technology choice is necessary for an in-scope decision,
 propose it for confirmation; otherwise defer it to implementation without
 blocking logical design.
+
+When describing existing software, preserve platform boundaries that matter to the responsibility rather than forcing every Spark to be reusable across platforms.
 
 ## Classify Sparks
 
