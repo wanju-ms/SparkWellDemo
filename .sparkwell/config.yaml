@@ -58,7 +58,7 @@ implementations:
     qa: true
     depends-on: [web-client]
     guidance: |
-      Implement the selected UI Sparks as a React application, consuming HTTP
+      Implement the selected app and editor Sparks as a React application, consuming HTTP
       access code, data types, and validation from web-client. Preserve the
       modeled UI behavior, modal editing, and loading and save outcomes.
 
@@ -68,7 +68,7 @@ implementations:
     qa: true
     depends-on: [ios-client]
     guidance: |
-      Implement the selected UI Sparks as a native iOS app using SwiftUI and
+      Implement the selected app and editor Sparks as a native iOS app using SwiftUI and
       ios-client for HTTP access, data models, and validation. Preserve the
       modeled behavior and loading and save outcomes, using native modal
       presentation for the editor.
@@ -94,8 +94,10 @@ bindings:
       - id: todo-item
     implementation: ios-client
   - match:
-      - spark-type: ui
+      - id: todo-app
+      - id: todo-editor
     implementation: web-ui
   - match:
-      - spark-type: ui
+      - id: todo-app
+      - id: todo-editor
     implementation: ios-ui

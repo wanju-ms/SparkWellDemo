@@ -26,10 +26,26 @@ function project(context) {
       return git('rev-parse', 'HEAD')
     },
     artifact(body, filename = 'artifacts/sparks/service.md') {
-      this.write(filename, `---\nid: service\ndescription: A service.\nkind: spark\nspark-type: service\n---\n\n# Service\n\n${body}\n`)
+      this.write(filename, `---\nid: service\ndescription: A service.\nkind: spark\nspark-type: api-service\n---\n\n# Service\n\n${body}\n`)
     },
   }
 }
+
+test('trace preserves historical Spark types across a metadata migration', context => {
+  const fixture = project(context)
+  const filename = 'artifacts/sparks/service.md'
+  fixture.artifact('Save records.')
+  const current = fs.readFileSync(path.join(fixture.root, filename), 'utf8')
+  fixture.write(filename, current.replace('spark-type: api-service', 'spark-type: service'))
+  const base = fixture.commit('Original service type')
+  fixture.write(filename, current)
+  const head = fixture.commit('Specialize the API contract')
+  const trace = extractTrace(fixture.root, { base, head })
+  assert.equal(trace.context.artifacts.find(entry => entry.side === 'old').metadata['spark-type'], 'service')
+  assert.equal(trace.context.artifacts.find(entry => entry.side === 'new').metadata['spark-type'], 'api-service')
+  assert.equal(trace['code-changes'].length, 0)
+  assert.equal(trace['design-changes'].length, 1)
+})
 
 test('trace committed snapshots provide exact changes and ignore current worktree context', context => {
   const fixture = project(context)
@@ -456,7 +472,7 @@ test('trace lookup CLI displays code diffs and before/after design text without 
 test('trace lookup before/after design text handles empty sides and preserves source punctuation', context => {
   const fixture = changedProject(context)
   fixture.git('rm', '-q', 'artifacts/sparks/service.md')
-  const source = '---\nid: added\ndescription: Added design.\nkind: spark\nspark-type: service\n---\n\n# Added\n\n- Keep a Markdown bullet.\n+ Keep a literal plus.\n  Keep indentation and trailing spaces.  '
+  const source = '---\nid: added\ndescription: Added design.\nkind: spark\nspark-type: api-service\n---\n\n# Added\n\n- Keep a Markdown bullet.\n+ Keep a literal plus.\n  Keep indentation and trailing spaces.  '
   fixture.write('artifacts/sparks/added.md', source)
   fixture.write('src/service.js', 'updated\n')
   const trace = linkAll(extractTrace(fixture.root, { base: fixture.trace.comparison.head, worktree: true }))

@@ -525,7 +525,7 @@ Todo Editor Spark
 
 当前 Todo Demo 包含 Web 和 iOS；Android 是扩展方向，不是已完成的实现。
 
-同样，一个 Service Spark 可以成为多个产物的共同设计来源。例如，结合相关 Data Spark，同一份 Todo Service 设计可以用于：
+同样，一个 API Service Spark 可以成为多个产物的共同设计来源。例如，结合相关 Data Spark，同一份 Todo Service 设计可以用于：
 
 ```text
 Todo Service Spark

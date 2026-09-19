@@ -99,12 +99,13 @@ Each `match` item is a non-empty map of selectors:
 | Selector | Matches |
 | --- | --- |
 | `id` | An exact Spark ID. |
-| `spark-type` | A declared Spark type from the model specification. |
+| `spark-type` | An explicitly declared `data` or `api-service` specialization. |
 | `id-pattern` | A whole-ID pattern: `*` matches zero or more characters, and `?` matches one character. Other characters are literal. |
 
 Selector values are non-empty strings and match metadata case-sensitively, not
 filenames or body text. Missing `spark-type` cannot match that selector; `*-ui`
-matches an ID suffix, not all UI Sparks.
+matches an ID suffix, not all Sparks with a user interface.
+Use `id` or `id-pattern` to bind ordinary untyped Sparks; they do not need a type just to select an implementation.
 
 - List items use OR; fields within an item use AND.
 - Rules are additive; neither order nor specificity overrides another rule.
@@ -114,7 +115,7 @@ Bindings describe associations, not work scope. Related Constraints, Aspects, an
 Collaborations need no bindings just to supply design context.
 
 A match must also fit the configuration's outputs. For example, an HTTP-client
-configuration does not fit a background Service without an HTTP interface.
+configuration does not fit a background worker without an HTTP interface.
 Unmatched Sparks have no configured implementation.
 
 Every Spark whose implementation is to be generated needs a binding to its
@@ -203,7 +204,7 @@ implementations:
     source-root: src/web
     stack: react
     depends-on: [web-client]
-    guidance: Use web-client outputs for the service interactions in the selected UI Sparks.
+    guidance: Use web-client outputs for the service interactions in the selected app and editor Sparks.
 
 bindings:
   - match: [{id: todo-service}, {id: reminder-service}]
@@ -219,7 +220,7 @@ bindings:
     implementation: web-client
   - match: [{id: todo-item}]
     implementation: web-client
-  - match: [{spark-type: ui}]
+  - match: [{id: todo-app}, {id: todo-editor}]
     implementation: web-ui
 ```
 

@@ -2,7 +2,6 @@
 id: todo-expiration-monitor
 description: "Independently scans saved Todos and requests overdue transitions while the service is running."
 kind: spark
-spark-type: service
 uses: [todo-service]
 ---
 

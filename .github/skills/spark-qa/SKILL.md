@@ -51,7 +51,7 @@ If the accepted design itself is ambiguous or contradictory, seek clarification 
 
 The read-only tools require Node.js 24+ and npm; follow the documented setup when dependencies are missing.
 Use `node .sparkwell/tools/sparkwell.js resolve` for selected implementations and relevant Spark context, with explicit filters rather than `--all` unless whole-project scope was requested.
-Different filter types intersect: a Data or Service Spark may not bind directly to the UI under test.
+Different filter types intersect: a Data or API service Spark may not bind directly to the UI under test.
 In that case, resolve the source Spark and the target implementation separately, then follow relevant incoming relationships and contracts to find its observable behavior through the target.
 Referenced design knowledge does not need a new binding merely to contribute test expectations.
 Inspect applicable `pending-scopes`, rule targets, and collaboration participants; relationships provide candidates, not automatic coverage or scope expansion.

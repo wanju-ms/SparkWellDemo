@@ -115,7 +115,7 @@ several collaborators. The root or current caller does not automatically own it.
 
 When describing dependencies, retain the capabilities relied on, their relevant conditions, and important interactions rather than explaining each referenced component's internals.
 
-For UI Sparks, retain agreed interaction spaces, actions, navigation, states,
+For Sparks describing user interaction, retain agreed interaction spaces, actions, navigation, states,
 and visual requirements. Design references and interaction notes can be clearer
 than prose; a Figma component is not a mandatory Spark boundary. For other
 concepts, preserve the data semantics, contracts, state ownership, and decisions
@@ -126,7 +126,7 @@ platform-specific details when relevant to explicit requirements or confirmed
 project constraints. A UI does not imply a browser, and persistence does not
 imply local or device-only storage. Ownership, loading, commit behavior, and
 state lifecycles can be designed without selecting a storage API or database.
-Neither the `service` type nor a repository abstraction implies a remote backend.
+Neither the `api-service` type nor a repository abstraction implies a remote backend.
 Technology neutrality does not justify leaving required responsibility or
 deployment boundaries unexplained.
 If a new platform or technology choice is necessary for an in-scope decision,
@@ -137,29 +137,21 @@ When describing existing software, preserve platform boundaries that matter to t
 
 ## Classify Sparks
 
-Choose `spark-type` from the specification's supported list based on the Spark's
-primary responsibility, not its name or implementation form. Leave unclear
-classification open for review rather than forcing a category. Classification
-supports understanding, filtering, and views; it does not determine boundaries,
-rule ownership, or architecture.
+Use `spark-type` only when a specialization from the specification fits the Spark's primary responsibility.
+Ordinary Sparks omit it; omission is not a classification gap.
+Specialization supports understanding, filtering, and views; it does not determine boundaries, rule ownership, or architecture.
 
-- An independent in-memory store, calculator, or runtime coordinator can be
-	`logic`; the record structure it manages remains `data`. Local file or database
-	access can be `service`, even within the application's process.
-- A monitor that owns continued expiration checks while the client is closed is
-	`service`; a calculation invoked by that monitor can be `logic`. The distinction
-	is the owned service lifecycle, not merely using a timer or background thread.
-- A UI or service remains classified by its main responsibility even when it
-	contains state or calculations. Do not extract that logic merely to classify it.
-- A React Hook may implement internal logic, a UI interaction, or client access
-	to a service. Its form alone neither selects `logic` nor justifies a new Spark.
-	One Spark can be implemented by several hooks, components, and functions.
+- Use `data` for a data concept's identity, structure, meaning, and validity rules, including relevant state transitions; merely holding state does not make a Spark a Data Spark.
+- Use `api-service` when the primary responsibility is a logical service contract that callers depend on, not merely because the implementation exposes functions or calls a backend.
+- Apps, editors, state coordinators, and autonomous background workers can remain untyped while retaining their interaction, state, and lifecycle contracts.
+  Do not split a responsibility just to give each part a type.
+- A React Hook or Provider is an implementation form, not a Spark type or an automatic reason to create another Spark.
+  One Spark can be implemented by several hooks, components, and functions.
 
-A Service Spark can describe a contract and required behavior realized by client
-access code and a backend or local provider implementation. Keep the parts'
-responsibilities explicit within the agreed delivery scope, including which
-provider owns authoritative data. Multiple implementation parts do not by
-themselves require separate Sparks.
+An API service contract can be realized by client access code and a backend or local provider through separate implementation targets.
+Keep the parts' responsibilities explicit, including which provider owns authoritative data; access code alone does not fulfill the provider's guarantees.
+Protocol and technology choices belong in implementation configuration unless they are modeled commitments.
+Multiple implementation parts do not by themselves require separate Sparks.
 
 ## Name Artifacts
 
@@ -192,7 +184,7 @@ to express the model, not a required template or a physical database schema.
 ## Describe Service Contracts
 
 Design service capabilities from the requested behavior and agreed scope. In the
-owning Service Spark, describe each capability's purpose, concept-level inputs
+owning Spark, describe each capability's purpose, concept-level inputs
 and outputs, and important success and failure behavior. Include triggers and
 execution-lifecycle commitments for scheduled or event-driven work. Reference
 Data Sparks for their data semantics and rules.
@@ -244,7 +236,7 @@ Keep continuation sentences indented within their list item, and use blank lines
 Use editor soft wrapping for display; preserve line breaks in unchanged text rather than reflowing surrounding paragraphs or whole files.
 Leave YAML, Markdown tables, and fenced code or diagrams in their required layout.
 
-For Logic Sparks, use Mermaid flowcharts for decisions or data flow and state
+Use Mermaid flowcharts for decisions or data flow and state
 diagrams for state changes when they help. Keep simple logic in prose and diagrams
 at design level, not as code walkthroughs.
 

@@ -2,7 +2,7 @@
 id: todo-service
 description: "Loads and saves Todos and provides atomic status transitions for client requests and background checks."
 kind: spark
-spark-type: service
+spark-type: api-service
 uses: [todo-item]
 ---
 

@@ -166,10 +166,10 @@ Choose proposed IDs using the Guide's
 [Name Artifacts](../../../.sparkwell/design-modeling-guide.md) criteria. Keep existing
 IDs stable unless a rename is explicitly confirmed.
 
-Set `spark-type` only for Sparks, using the specification's supported values.
+Set `spark-type` only for Sparks whose responsibilities fit a specialization supported by the specification.
 Apply the Guide's [Classify Sparks](../../../.sparkwell/design-modeling-guide.md) criteria
 to distinguish responsibilities from implementation forms.
-If classification is unclear, leave it unset and report the gap for review.
+Leave ordinary Sparks untyped; omission is normal and needs no classification warning.
 This workflow does not extend the type vocabulary.
 
 Record relevant contracts and state decisions concisely in their owning Sparks;
@@ -228,7 +228,7 @@ fields including allowed `spark-type` values, stable IDs, `<id>.md` filenames,
 kind-directory agreement, relationship target kinds, applicability declarations,
 participants, composition cycles, links, and full index consistency.
 Review proposed IDs for specificity and data/UI ambiguity using the Guide.
-Review Spark classifications by their modeled responsibilities, not code forms.
+Review declared Spark types by their modeled responsibilities, not code forms.
 Review representative in-scope scenarios using the Guide, including local intent,
 applicable rules, and interaction semantics in Collaboration artifacts. Check
 that relevant inputs, effects, and state/data flows can be followed across the

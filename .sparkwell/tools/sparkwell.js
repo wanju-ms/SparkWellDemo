@@ -11,7 +11,7 @@ export const KINDS = {
   aspect: 'aspects',
   collaboration: 'collaborations',
 }
-const SPARK_TYPES = new Set(['ui', 'data', 'logic', 'service'])
+const SPARK_TYPES = new Set(['data', 'api-service'])
 const COMMON_FIELDS = ['id', 'description', 'kind', 'sources', 'icon', 'image']
 const KIND_FIELDS = {
   spark: ['spark-type', 'role', 'uses', 'composes'],

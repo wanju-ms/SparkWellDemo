@@ -92,9 +92,20 @@ Context-only Artifacts do not need bindings, and associations do not authorize r
 Preserve existing QA settings; add or change QA defaults only when they are part of the reviewed proposal, not merely because an application was discovered.
 
 Propose map entries for existing files whose responsibilities, rules, contracts, or tests have an evidenced relationship to the model.
+Trace the modeled responsibilities and behavior from entry points to files that directly define rules, manage state, compute outputs, perform effects, or coordinate interactions.
+Do not stop at assembly or forwarding code; retain those entry files when the assembly or coordination itself is modeled.
+Configuration, data definitions, and tests can also qualify; identify the modeled knowledge each proposed association directly implements or verifies.
+
+Stop at responsibility boundaries rather than collecting the full dependency tree.
+Code references and Spark `uses` or `composes` relationships do not propagate mappings.
+Direct implementation files can be mapped without a separate Spark for each component.
+
+When extracting or transferring responsibilities between Artifacts, recheck affected existing mappings even when their referenced IDs remain valid.
+Propose removing or reassigning associations that no longer have direct evidence; retain multiple associations when the file still implements or verifies knowledge from each Artifact.
+
 Mappings are many-to-many and can be recorded without changing the implementation.
 `derived-from` does not establish that the Artifact historically generated the code, nor that the implementation is complete or correct.
-Retain each affected path's complete valid source list and all unrelated records; keep uncertain associations out of written maps.
+Retain each affected path's complete valid source list and all unrelated records; report uncertain associations separately without writing them or claiming complete mapping coverage.
 Explicitly list proposed removals or corrections rather than inferring renames or deleting stale records silently.
 
 ## Confirm Before Writing

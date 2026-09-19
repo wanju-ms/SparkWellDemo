@@ -2,7 +2,6 @@
 id: todo-app
 description: "Lists Todos with their time fields and coordinates editing and foreground refresh."
 kind: spark
-spark-type: ui
 role: root
 composes: [todo-editor]
 uses: [todo-item, todo-service]

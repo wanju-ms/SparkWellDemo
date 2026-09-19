@@ -34,7 +34,7 @@ replacing concepts; do not silently change what an existing ID means.
 | `id` | String | Yes | Stable project-wide artifact identifier |
 | `description` | String | Yes | One or two sentences summarizing the current knowledge or responsibility |
 | `kind` | String | Yes | One of the four artifact kinds below |
-| `spark-type` | String | No | Software-concept category for `kind: spark`, from the supported list below |
+| `spark-type` | String | No | Optional specialization for `kind: spark`, from the supported list below |
 | `role` | String | No | `root` on a Spark that provides an entry point to a meaningful software scope |
 | `sources` | Array of strings | No | Provenance references such as issue IDs, document paths, or URLs |
 | `icon` | String | No | Persistent icon asset, relative to the document or an absolute image URL |
@@ -52,21 +52,21 @@ valid only for `kind: spark`. When present, it must be one of these values:
 
 | Spark Type | Meaning |
 | --- | --- |
-| `ui` | A user-facing interaction space and its behavior |
-| `data` | A data concept, its structure, identity, and validity rules |
-| `logic` | An internal computation, decision, state-management, or coordination responsibility |
-| `service` | A backend, background-processing, or local-resource capability the application relies on, including its contract, behavior, and lifecycle guarantees |
+| `data` | A data concept, its meaning, structure, identity, and validity rules |
+| `api-service` | A logical service contract exposing a cohesive set of operations and behavior guarantees to callers |
 
-The `service` boundary is relative to the consuming application's internal logic;
-it need not be remote, out-of-process, or third-party. A service contract can
-describe caller-invoked operations or scheduled and event-driven work. Internal
-state management, computation, and coordination do not become services merely
-by exposing callable operations.
+Omit `spark-type` for ordinary Sparks; omission is valid and requires no classification warning.
+Apps, editors, state coordinators, and background workers can remain untyped without losing their behavior or rules.
+Data remains a Spark, not another Artifact kind, and may include state transitions and other data behavior.
+
+`api-service` describes the service contract, not just its client access code, and does not require a remote backend, HTTP, REST, or a separate process.
+Client access code and the service provider may realize that contract through different implementation targets.
+Configuration chooses concrete implementation technology and access mechanisms without changing modeled data authority, consistency, lifecycle, or failure guarantees.
+Exposing callable functions or making network requests alone does not make a Spark an API service.
 
 No other values are supported. Adding a type requires explicit user approval
-and a specification update before use. If no type fits, omit the field and
-report the classification gap rather than inventing a value or distorting the
-concept. Classification does not change the artifact kind, directory, or identity.
+and a specification update before use.
+Specialization does not change the artifact kind, directory, or identity.
 
 A root is optional, does not own every rule, and need not reach every artifact.
 
@@ -151,7 +151,6 @@ and `todo-store` are hypothetical existing concepts in these examples.
 id: todo-editor
 description: "Edits Todo names and descriptions while keeping unsaved input separate from saved data."
 kind: spark
-spark-type: ui
 uses: [todo]
 ---
 

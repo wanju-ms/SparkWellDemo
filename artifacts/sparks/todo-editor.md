@@ -2,7 +2,6 @@
 id: todo-editor
 description: "Edits Todo content and deadlines in a modal while keeping system state and unsaved input separate."
 kind: spark
-spark-type: ui
 uses: [todo-item]
 ---
 

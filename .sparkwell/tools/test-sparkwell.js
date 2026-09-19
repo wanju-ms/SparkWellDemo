@@ -31,10 +31,10 @@ function project(context) {
     },
     model() {
       this.artifact('todo-item', { 'spark-type': 'data' })
-      this.artifact('todo-service', { 'spark-type': 'service', uses: ['todo-item'] })
-      this.artifact('other-service', { 'spark-type': 'service', uses: ['todo-item'] })
-      this.artifact('todo-editor', { 'spark-type': 'ui', uses: ['todo-item'] })
-      this.artifact('todo-app', { 'spark-type': 'ui', composes: ['todo-editor'], uses: ['todo-service'] })
+      this.artifact('todo-service', { 'spark-type': 'api-service', uses: ['todo-item'] })
+      this.artifact('other-service', { 'spark-type': 'api-service', uses: ['todo-item'] })
+      this.artifact('todo-editor', { uses: ['todo-item'] })
+      this.artifact('todo-app', { composes: ['todo-editor'], uses: ['todo-service'] })
     },
     cli(argumentsList, input = '') {
       let output = ''
@@ -58,9 +58,9 @@ function configuration() {
     },
     bindings: [
       { id: 'clients', implementation: 'client', match: [{ id: 'todo-service' }] },
-      { implementation: 'contract', match: [{ 'spark-type': 'service' }] },
-      { implementation: 'server', match: [{ 'spark-type': 'service' }] },
-      { implementation: 'ui', match: [{ 'spark-type': 'ui' }] },
+      { implementation: 'contract', match: [{ 'spark-type': 'api-service' }] },
+      { implementation: 'server', match: [{ 'spark-type': 'api-service' }] },
+      { implementation: 'ui', match: [{ id: 'todo-app' }, { id: 'todo-editor' }] },
     ],
   }
 }
@@ -131,7 +131,7 @@ test('duplicate Artifact IDs are rejected', context => {
 
 test('kind-specific metadata and applicability rules are checked', context => {
   const fixture = project(context)
-  fixture.artifact('rule', { kind: 'constraint', scope: 'All items', 'spark-type': 'logic' })
+  fixture.artifact('rule', { kind: 'constraint', scope: 'All items', 'spark-type': 'data' })
   errorCode('invalid-fields', () => tools.loadArtifacts(fixture.root))
   fixture.artifact('rule', { kind: 'constraint', scope: 'All items', 'applies-to': ['rule'] })
   errorCode('invalid-applicability', () => tools.loadArtifacts(fixture.root))
@@ -141,6 +141,52 @@ test('non-string spark-type produces a diagnostic', context => {
   const fixture = project(context)
   fixture.artifact('item', { 'spark-type': [] })
   errorCode('invalid-string', () => tools.loadArtifacts(fixture.root))
+})
+
+test('Spark type vocabulary accepts data, api-service, and ordinary untyped Sparks', context => {
+  const fixture = project(context)
+  fixture.artifact('item', { 'spark-type': 'data' })
+  fixture.artifact('catalog', { 'spark-type': 'api-service', uses: ['item'] })
+  fixture.artifact('app', { role: 'root', uses: ['catalog'] })
+  const records = tools.loadArtifacts(fixture.root)
+  assert.equal(records.get('item').metadata['spark-type'], 'data')
+  assert.equal(records.get('catalog').metadata['spark-type'], 'api-service')
+  assert.equal(Object.hasOwn(records.get('app').metadata, 'spark-type'), false)
+
+  fixture.config({
+    'schema-version': 1,
+    implementations: { web: { 'source-root': 'src/web' } },
+    bindings: [
+      { id: 'data', implementation: 'web', match: [{ 'spark-type': 'data' }] },
+      { id: 'services', implementation: 'web', match: [{ 'spark-type': 'api-service' }] },
+      { id: 'app', implementation: 'web', match: [{ id: 'app' }] },
+    ],
+  })
+  for (const [binding, spark] of [['data', 'item'], ['services', 'catalog'], ['app', 'app']]) {
+    const resolved = fixture.cli(['resolve', '--binding', binding])
+    assert.equal(resolved.exitCode, 0)
+    assert.deepEqual(resolved.result.selected.map(pair => pair.spark), [spark])
+  }
+})
+
+test('Spark type vocabulary rejects retired and unsupported metadata values', context => {
+  const fixture = project(context)
+  for (const sparkType of ['ui', 'logic', 'service', 'rest-service', 'api-client']) {
+    fixture.artifact('item', { 'spark-type': sparkType })
+    errorCode('invalid-spark-type', () => tools.loadArtifacts(fixture.root))
+  }
+})
+
+test('Spark type vocabulary rejects retired and unsupported binding selectors', context => {
+  const fixture = project(context)
+  for (const sparkType of ['ui', 'logic', 'service', 'rest-service', 'api-client']) {
+    fixture.config({
+      'schema-version': 1,
+      implementations: { web: { 'source-root': 'src/web' } },
+      bindings: [{ implementation: 'web', match: [{ 'spark-type': sparkType }] }],
+    })
+    errorCode('invalid-spark-type', () => tools.loadConfig(fixture.root))
+  }
 })
 
 test('title validation ignores fences and rejects concatenated documents', context => {
@@ -384,7 +430,7 @@ test('all reports unbound Sparks and repeated pair matches retain binding reason
   const config = configuration()
   config.bindings.push({
     id: 'more-clients', implementation: 'client',
-    match: [{ 'id-pattern': 'todo-*', 'spark-type': 'service' }, { id: 'todo-service' }],
+    match: [{ 'id-pattern': 'todo-*', 'spark-type': 'api-service' }, { id: 'todo-service' }],
   })
   fixture.config(config)
   const result = fixture.cli(['resolve', '--all']).result
@@ -395,14 +441,15 @@ test('all reports unbound Sparks and repeated pair matches retain binding reason
 })
 
 test('whole-ID patterns are case-sensitive with only * and ? as wildcards', () => {
-  const metadata = { id: 'todo-ui', 'spark-type': 'ui' }
+  const metadata = { id: 'todo-api', 'spark-type': 'api-service' }
   for (const [selector, expected] of [
-    [{ 'id-pattern': '*-ui' }, true], [{ 'id-pattern': 'todo-??' }, true],
-    [{ 'id-pattern': 'ui' }, false], [{ 'id-pattern': 'Todo-*' }, false],
-    [{ 'id-pattern': 'todo-[ui]' }, false], [{ 'id-pattern': 'todo-.*' }, false],
+    [{ 'id-pattern': '*-api' }, true], [{ 'id-pattern': 'todo-???' }, true],
+    [{ 'id-pattern': 'api' }, false], [{ 'id-pattern': 'Todo-*' }, false],
+    [{ 'id-pattern': 'todo-[api]' }, false], [{ 'id-pattern': 'todo-.*' }, false],
+    [{ 'id-pattern': 'todo-*', 'spark-type': 'api-service' }, true],
     [{ 'id-pattern': 'todo-*', 'spark-type': 'data' }, false],
   ]) assert.equal(tools.selectorMatches(selector, metadata), expected)
-  assert.equal(tools.selectorMatches({ 'spark-type': 'ui' }, { id: 'untyped' }), false)
+  assert.equal(tools.selectorMatches({ 'spark-type': 'api-service' }, { id: 'untyped' }), false)
 })
 
 test('context preserves explicit rule targets and unresolved natural-language scopes', context => {
