@@ -131,6 +131,7 @@ ownership, or design rather than asking the author for a node-by-node schedule.
 
 Present a concise plan: selected Spark/implementation pairs, comparison basis when
 relevant, required output order and reuse, intended changes, and focused validation.
+Use the [Guide's writing guidance](../../../.sparkwell/design-modeling-guide.md) for short labels with details beneath them in multi-point plans, explanatory documentation, and handoff reports.
 An explicit implementation request authorizes routine work within that scope; do not
 require another confirmation for every step. Ask for blocking uncertainty,
 scope expansion, consequential configuration changes, or destructive replacement.

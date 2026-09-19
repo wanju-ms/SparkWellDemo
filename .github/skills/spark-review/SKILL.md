@@ -64,6 +64,7 @@ Semantic agreement does not establish model completeness or guarantee generation
 ## Report and Stop
 
 Lead with possible conflicts and material evidence gaps, then summarize supported claims and explicit delivery limits.
+Use the [Guide's writing guidance](../../../.sparkwell/design-modeling-guide.md) for short finding titles with supporting details beneath them.
 For each reported result, name the model statement with its file and location, the implementation and evidence locations, the observed behavior or missing evidence, and the outcome with relevant conditions.
 Suggest a concrete next step where needed, such as inspecting an external contract, a focused test, a scoped implementation fix, or a model proposal through `/spark-design`.
 Keep the report proportional and in the user's language; group claims that share the same evidence rather than repeating code descriptions.

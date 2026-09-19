@@ -225,11 +225,21 @@ It may not reproduce the original code; use existing code for changes.
 Assess its completeness for each new implementation target.
 ```
 
-Within sections, prefer flat bulleted lists for multiple distinct points, with
-one meaningful point per item. Use numbered lists when sequence matters. Keep
-short paragraphs for a single point or a connected explanation, and tables for
-structured fields or comparisons. Do not repeat the same content in prose and
-lists, or add detail merely to fill list items.
+For multiple responsibilities or capabilities, use short, concrete labels that form a scannable outline.
+Place the explanation beneath each label, usually as one level of nested bullets.
+Keep the behavior, conditions, dependencies, and failure boundaries needed for understanding and change review in those details.
+Name the responsibility or action rather than repeating the explanation or mechanically copying component names.
+
+```markdown
+- **Save Changes**
+	- Close the editor only after saving succeeds.
+	- Keep the draft available when saving fails.
+```
+
+Use the same short-label-and-detail structure for multi-point human-readable Skill proposals, findings, and reports.
+Keep brief points as single bullets or paragraphs, numbered steps when order matters, and tables for structured fields or comparisons.
+Required output formats, including QA step tables and machine-readable schemas, take precedence.
+Do not repeat the same content in prose and lists, or add detail merely to fill list items.
 
 Use semantic line breaks for prose: keep each complete sentence on its own source line instead of wrapping at a fixed column width.
 Keep continuation sentences indented within their list item, and use blank lines only for paragraph boundaries.

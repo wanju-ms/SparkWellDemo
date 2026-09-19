@@ -96,6 +96,7 @@ If the worktree changed during analysis, report the stale snapshot and extract a
 If analysis must stop early, validate the draft without `--complete` and explicitly report remaining `not-analyzed` entries.
 
 Return the output path, exact comparison, link and unresolved counts, and relevant extraction limits.
+Use the [Guide's writing guidance](../../../.sparkwell/design-modeling-guide.md) for short labels with details beneath them in multi-point summaries to the user; keep report JSON and its explanation fields in the prescribed Change Map format.
 Do not present an extraction-only report with empty links as finished semantic analysis.
 Only the report and an explicitly needed comment-input file may be written, apart from authorized tool setup.
 Do not edit application code, Artifacts, existing implementation maps, test cases, or project configuration, and do not run the application or tests.

@@ -14,6 +14,7 @@ Use QA judgment to select useful scenarios and methods rather than treating ever
 
 Use [Implementation Configuration](../../../.sparkwell/implementation-config.md) for platform selection and QA guidance, [Tools](../../../.sparkwell/tools.md) for context discovery, and the [Artifact Specification](../../../.sparkwell/artifact-document-spec.md) for model metadata.
 Follow the [Modeling Guide's writing guidance](../../../.sparkwell/design-modeling-guide.md) for concise, accurate prose and stable sentence-level line breaks.
+Use its short labels with details beneath them for multi-point setup, coverage notes, plans, and reports; preserve case indexes and numbered action/expected-result tables.
 
 ## Choose the Work
 

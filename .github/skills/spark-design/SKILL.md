@@ -183,6 +183,7 @@ When drafting artifacts, apply the Guide's
 
 Before writing, review the drafts together for high-level design depth, clarity,
 and organization using [Organize Artifact Bodies](../../../.sparkwell/design-modeling-guide.md).
+For new or rewritten multi-point Artifact content, proposals, and change reports, use its short labels with details beneath them.
 For incremental updates, start from the owning Artifact's existing text and terminology.
 Preserve accurate wording, headings, order, and line breaks where the meaning is unaffected, unless a rewrite or formatting change was explicitly requested.
 Express new or changed knowledge in the existing style and at a similar level of detail.

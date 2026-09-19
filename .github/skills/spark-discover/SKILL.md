@@ -64,6 +64,10 @@ Identify platform-specific scope, inspected conditions, unknowns, and uncovered 
 A useful partial model is a valid result; do not fill uninspected behavior with invented decisions or require enough detail to recreate the entire implementation.
 Explain which nearby candidates remain implementation details or belong to an existing owner when that helps justify the boundary.
 
+Use the [Guide's writing guidance](../../../.sparkwell/design-modeling-guide.md) for multi-point proposals, Artifact bodies, and handoff reports, with short labels and necessary detail beneath them.
+For an app or coordinator, organize the body around the capabilities it sets up or connects.
+Keep the scope, dependencies, ordering, and failure boundaries needed to explain that integration; leave collaborators' internal policies with their owners.
+
 Before presenting the proposal, check the draft against a plausible change within its stated scope, using the Guide's criteria for useful detail.
 Can the draft and its model references identify the responsible owner, behavior or constraints to change or preserve, and collaborators to review without reconstructing those decisions from code?
 Use the check to add evidence-backed knowledge or remove unnecessary component-internal explanations, not to add hypothetical requirements or a checklist section to the Artifact.
