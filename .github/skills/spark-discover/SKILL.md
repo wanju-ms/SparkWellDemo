@@ -29,6 +29,9 @@ For historical analysis, use the specified snapshot's code, model, configuration
 Before recording historical findings as the current model, establish their applicability to the current working tree with the user; do not silently replace current knowledge with an older snapshot.
 
 Inspect existing Artifacts, the index, configuration, and maps before proposing additions.
+Before analyzing code, read `.sparkwell/config.yaml` when present and each relevant implementation's `guidance` or `guidance-file` contents.
+Read and follow the applicable project instructions referenced there.
+Do this even when bindings are absent; identify relevant implementations from the requested scope and `source-root`.
 Missing model directories, configuration, or maps are normal for a project being adopted, not evidence that implementation is absent.
 Use installed `inventory`, filtered `resolve`, and `map show` commands where applicable; `inventory` does not require configuration.
 If tools or dependencies are missing, analysis can proceed from files; arrange the documented tool setup before tool-driven writes rather than inventing another config or map format.
