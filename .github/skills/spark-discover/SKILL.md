@@ -64,6 +64,16 @@ Identify platform-specific scope, inspected conditions, unknowns, and uncovered 
 A useful partial model is a valid result; do not fill uninspected behavior with invented decisions or require enough detail to recreate the entire implementation.
 Explain which nearby candidates remain implementation details or belong to an existing owner when that helps justify the boundary.
 
+Discovering collaborators does not expand the agreed write scope or require recursively creating their Sparks.
+For collaborators not yet modeled, retain necessary interactions, conditions, and implementation pointers in the current Spark's body using ordinary capability names.
+Report extraction candidates separately with tentative names, responsibilities, reasons for independent maintenance, inspected code locations, and unexamined scope.
+Keep candidate IDs out of the index, bindings, and maps; do not create name-only or TODO placeholder Artifacts.
+
+An explicitly confirmed, small Spark with evidence-backed responsibility, relevant contract, and boundaries is valid; keep unknowns explicit without recursively modeling its dependencies.
+Write graph relationships and Artifact links only to targets that exist or are created within the confirmed scope.
+Choose `uses` or `composes` by their meaning, not by treating every collaborator as a child.
+When a candidate is later adopted, update affected knowledge ownership, relationships, and mappings within the confirmed scope.
+
 Use the [Guide's writing guidance](../../../.sparkwell/design-modeling-guide.md) for multi-point proposals, Artifact bodies, and handoff reports, with short labels and necessary detail beneath them.
 For an app or coordinator, organize the body around the capabilities it sets up or connects.
 Keep the scope, dependencies, ordering, and failure boundaries needed to explain that integration; leave collaborators' internal policies with their owners.
