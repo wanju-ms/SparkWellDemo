@@ -366,6 +366,38 @@ test('trace candidates use versioned maps and bindings only as hints', context =
   assert.ok(trace.context.support.every(entry => !entry.content.includes('broken')))
 })
 
+test('trace grouped maps preserve many-to-many candidates across a legacy storage migration', context => {
+  const fixture = project(context)
+  fixture.artifact('Save records.')
+  fixture.write('artifacts/sparks/item.md', '---\nid: item\ndescription: A record.\nkind: spark\nspark-type: data\n---\n\n# Item\n')
+  const mapPath = '.sparkwell/implementation-maps/api.yaml'
+  const legacy = 'schema-version: 1\nimplementation-id: api\nartifacts:\n  - path: src/client.js\n    derived-from: [item, service]\n  - path: src/service.js\n    derived-from: [item, service]\n'
+  const grouped = 'schema-version: 2\nimplementation-id: api\nartifacts:\n  - derived-from: [item, service]\n    paths:\n      - src/client.js\n      - src/service.js\n'
+  fixture.write(mapPath, legacy)
+  for (const filename of ['src/client.js', 'src/service.js', 'src/unmapped.js']) fixture.write(filename, 'old\n')
+  const base = fixture.commit()
+  fixture.write(mapPath, grouped)
+  for (const filename of ['src/client.js', 'src/service.js', 'src/unmapped.js']) fixture.write(filename, 'new\n')
+  const head = fixture.commit()
+  fixture.write(mapPath, 'unrelated: working copy\n')
+  const trace = extractTrace(fixture.root, { base, head })
+  for (const filename of ['src/client.js', 'src/service.js']) {
+    const file = trace.files.find(entry => entry.new?.path === filename)
+    assert.equal(file.candidates.length, 4)
+    const sources = file.candidates.map(candidate => {
+      assert.equal(candidate.via, 'implementation-map')
+      assert.equal(candidate.implementation, 'api')
+      const artifact = trace.context.artifacts.find(entry => entry.key === candidate.artifact)
+      return `${artifact.side}:${artifact.metadata.id}`
+    })
+    assert.deepEqual(sources.sort(), ['new:item', 'new:service', 'old:item', 'old:service'])
+  }
+  assert.deepEqual(trace.files.find(entry => entry.new?.path === 'src/unmapped.js').candidates, [])
+  assert.equal(trace.context.support.find(entry => entry.side === 'old' && entry.file.path === mapPath).content, legacy)
+  assert.equal(trace.context.support.find(entry => entry.side === 'new' && entry.file.path === mapPath).content, grouped)
+  assert.ok(checkTrace(fixture.root, trace))
+})
+
 test('trace comments are explicitly sourced and may explain unmapped implementation changes', context => {
   const fixture = project(context)
   fixture.write('source.js', 'old\n')

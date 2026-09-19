@@ -1,25 +1,18 @@
-schema-version: 1
+schema-version: 2
 implementation-id: api-server
 artifacts:
-  - path: src/api/README.md
-    derived-from:
-      - todo-service
-  - path: src/api/expiration-monitor.js
-    derived-from:
-      - todo-expiration-monitor
-      - todo-expiration-sync
-  - path: src/api/server.js
-    derived-from:
-      - todo-expiration-monitor
-      - todo-service
-  - path: src/api/server.test.js
-    derived-from:
-      - todo-expiration-monitor
-      - todo-expiration-sync
-      - todo-item
-      - todo-service
-  - path: src/api/todo-service.js
-    derived-from:
-      - todo-expiration-sync
-      - todo-item
-      - todo-service
+  - derived-from: [todo-expiration-monitor, todo-expiration-sync, todo-item, todo-service]
+    paths:
+      - src/api/server.test.js
+  - derived-from: [todo-expiration-monitor, todo-expiration-sync]
+    paths:
+      - src/api/expiration-monitor.js
+  - derived-from: [todo-expiration-monitor, todo-service]
+    paths:
+      - src/api/server.js
+  - derived-from: [todo-expiration-sync, todo-item, todo-service]
+    paths:
+      - src/api/todo-service.js
+  - derived-from: [todo-service]
+    paths:
+      - src/api/README.md

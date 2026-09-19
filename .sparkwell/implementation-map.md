@@ -14,22 +14,24 @@ binding ID. Maps are project files suitable for version control.
 ## Format
 
 ```yaml
-schema-version: 1
+schema-version: 2
 implementation-id: web-client
 artifacts:
-  - path: src/web/client/todo-client.ts
-    derived-from: [todo-service, todo-item]
+  - derived-from: [todo-item, todo-service]
+    paths:
+      - src/web/client/todo-client.ts
+      - src/web/client/todo-validation.ts
 ```
 
 This is a hypothetical example, not a configuration or mapping for this project.
 
 | Field | Meaning |
 | --- | --- |
-| `schema-version` | Required integer, currently `1`. |
+| `schema-version` | Required integer, `2` for grouped storage; legacy `1` remains readable. |
 | `implementation-id` | Required registered implementation ID, matching the filename. |
-| `artifacts` | Required list of output records. An empty list is valid. |
-| `artifacts[].path` | Unique project-relative path to an existing file within the implementation's `source-root`. |
-| `artifacts[].derived-from` | Non-empty list of distinct model Artifact IDs whose design the file implements. |
+| `artifacts` | Required list of output groups. An empty list is valid. |
+| `artifacts[].paths` | Non-empty list of distinct project-relative paths to existing files within the implementation's `source-root`. A path occurs only once across all groups. |
+| `artifacts[].derived-from` | Non-empty list of distinct model Artifact IDs forming the complete association set for every file in the group. |
 
 Paths use `/` and stay inside the project, including after resolving symlinks.
 Directories are not outputs. Sources follow the
@@ -37,8 +39,15 @@ Directories are not outputs. Sources follow the
 Constraints, Aspects, or Collaborations. Merely reading a document does not make
 it a source of the file.
 
-Output records are ordered by path and source IDs alphabetically when written by
-the tools. Duplicate YAML keys, unknown fields, duplicate output paths, malformed
+Tool writes combine files with identical complete source sets into one group, with an inline `derived-from` list and one explicit path per line.
+Source IDs and paths are sorted alphabetically; groups have a deterministic order based on their sorted source lists.
+The format remains many-to-many: a group can name several Artifacts without repeating its files in other groups.
+
+Legacy version `1` uses per-file records with `path` and `derived-from`, in either block or flow YAML.
+Readers expand both versions to the same per-file representation; new or changed maps are written as version `2`.
+Updates with no mapping changes preserve the existing bytes, including a legacy storage format.
+
+Duplicate YAML keys, unknown fields, duplicate output paths, malformed
 values, and `null` are invalid. Missing output files, source IDs, or implementation
 IDs make a map stale; they do not authorize deleting files or inferring a rename.
 
@@ -67,10 +76,15 @@ Use the existing preview and targeted update workflow in [Tools](tools.md); no c
 
 ## Targeted Changes
 
+Tool JSON results retain the expanded version `1` map with individual `path` records, so filtering and file lookup do not depend on storage groups.
+Update inputs also remain per-file: each upsert supplies `path` and its complete `derived-from` list, never `paths`.
 An update supplies complete replacement records for specified paths and/or paths
 to remove from the map. Records for other paths remain unchanged. Removing a
 record changes only the map, not the output file. Updating an Artifact ID is an
 explicit mapping change, not a name inferred from similar files.
+
+Changing one file's source set moves only that file to the appropriate group on the next write; other files in its former group keep their associations.
+Removing one file leaves the remaining group members intact, and empty groups are omitted.
 
 The resulting map must satisfy the format and reference rules. Stale records can
 be explicitly corrected or removed; they are never silently discarded. Temporary

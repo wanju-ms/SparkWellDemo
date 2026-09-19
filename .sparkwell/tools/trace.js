@@ -227,7 +227,10 @@ function candidateContext(files, artifacts, support, diagnostics) {
       for (const source of sources) {
         if (source.file.path.startsWith('.sparkwell/implementation-maps/')) {
           for (const entry of Array.isArray(source.value.artifacts) ? source.value.artifacts : []) {
-            if (entry?.path !== snapshotFile.path || !Array.isArray(entry['derived-from'])) continue
+            const matchesPath = source.value['schema-version'] === 2
+              ? Array.isArray(entry?.paths) && entry.paths.includes(snapshotFile.path)
+              : entry?.path === snapshotFile.path
+            if (!matchesPath || !Array.isArray(entry['derived-from'])) continue
             for (const id of entry['derived-from']) {
               const matches = available.filter(candidate => candidate.metadata.id === id)
               if (!matches.length) diagnostics.push({ code: 'stale-map-source', path: source.file.path, side, artifact: id, message: 'The map source is absent from this snapshot.' })

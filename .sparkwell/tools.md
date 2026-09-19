@@ -103,6 +103,7 @@ node .sparkwell/tools/sparkwell.js map check --implementation web-client
 `map show` accepts one `--implementation` and repeatable `--source` filters (OR).
 It reports stale mappings without silently deleting them. An absent map is shown
 with `exists: false`; it does not imply that no code exists.
+Both legacy version `1` maps and grouped version `2` maps are read as per-file records in tool JSON results.
 
 Updates accept JSON through `--changes PATH` (project-relative) or `--changes -`
 (stdin). For example:
@@ -130,11 +131,14 @@ node .sparkwell/tools/sparkwell.js map update --implementation web-client --chan
 ```
 
 The first command previews; the second persists. The result includes `changed`,
-`written`, and the resulting map. Writes normalize YAML ordering, use an atomic
+`written`, and the resulting map. Writes use the grouped version `2` YAML format in
+[Implementation Map](implementation-map.md), normalize ordering, use an atomic
 file replacement, and take a short-lived exclusive lock. Contention reports
 `map-busy` without waiting; a detected external edit reports `map-changed`.
 If a terminated process leaves a lock, confirm no writer is active before removing
 that stale lock. No persistent run-status or selection files are created.
+Update input still uses `path`, not `paths`; grouping does not turn a single-file upsert or removal into a group-wide change.
+Unchanged updates do not rewrite legacy storage merely to migrate its format.
 
 ### Map Existing Code
 

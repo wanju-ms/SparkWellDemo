@@ -1,8 +1,6 @@
-schema-version: 1
+schema-version: 2
 implementation-id: api-contract
 artifacts:
-  - path: src/contracts/todo-api.yaml
-    derived-from:
-      - todo-expiration-sync
-      - todo-item
-      - todo-service
+  - derived-from: [todo-expiration-sync, todo-item, todo-service]
+    paths:
+      - src/contracts/todo-api.yaml

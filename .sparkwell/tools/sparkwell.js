@@ -3,7 +3,7 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { isDeepStrictEqual, parseArgs } from 'node:util'
-import { isScalar, parseDocument, stringify, visit } from 'yaml'
+import { Document, isScalar, parseDocument, visit } from 'yaml'
 
 export const KINDS = {
   spark: 'sparks',
@@ -561,7 +561,10 @@ export function mapPath(root, implementation) {
 function normalizeMap(root, implementation, data) {
   const location = `${MAP_DIRECTORY}/${implementation}.yaml`
   objectFields(data, ['schema-version', 'implementation-id', 'artifacts'], [], location)
-  schemaVersion(data['schema-version'], location)
+  if (![1, 2].includes(data['schema-version'])) {
+    throw new ToolError('unsupported-version', 'Expected map schema-version: 1 or 2', location)
+  }
+  const grouped = data['schema-version'] === 2
   if (data['implementation-id'] !== implementation) {
     throw new ToolError('map-identity', 'implementation-id must match the map filename', location)
   }
@@ -570,21 +573,44 @@ function normalizeMap(root, implementation, data) {
   }
   const outputs = new Map()
   for (const entry of data.artifacts) {
-    objectFields(entry, ['path', 'derived-from'], [], location)
-    const output = projectPath(root, entry.path, location)
-    const relative = relativePath(root, output)
-    if (outputs.has(relative)) {
-      throw new ToolError('duplicate-output', `Repeated output path: ${relative}`, location)
-    }
+    objectFields(entry, [grouped ? 'paths' : 'path', 'derived-from'], [], location)
+    const paths = grouped ? stringList(entry.paths, location, 1) : [entry.path]
     const sources = stringList(entry['derived-from'], location, 1)
     sources.forEach(source => identifier(source, location))
-    outputs.set(relative, { path: relative, 'derived-from': [...sources].sort() })
+    for (const filename of paths) {
+      const output = projectPath(root, filename, location)
+      const relative = relativePath(root, output)
+      if (outputs.has(relative)) {
+        throw new ToolError('duplicate-output', `Repeated output path: ${relative}`, location)
+      }
+      outputs.set(relative, { path: relative, 'derived-from': [...sources].sort() })
+    }
   }
   return {
     'schema-version': 1,
     'implementation-id': implementation,
     artifacts: [...outputs.keys()].sort().map(filename => outputs.get(filename)),
   }
+}
+
+export function serializeMap(map) {
+  const groups = new Map()
+  for (const entry of map.artifacts) {
+    const sources = [...entry['derived-from']].sort()
+    const key = JSON.stringify(sources)
+    if (!groups.has(key)) groups.set(key, { 'derived-from': sources, paths: [] })
+    groups.get(key).paths.push(entry.path)
+  }
+  const document = new Document({
+    'schema-version': 2,
+    'implementation-id': map['implementation-id'],
+    artifacts: [...groups.keys()].sort().map(key => {
+      const group = groups.get(key)
+      return { ...group, paths: group.paths.sort() }
+    }),
+  })
+  for (const group of document.get('artifacts', true).items) group.get('derived-from', true).flow = true
+  return document.toString({ lineWidth: 0, flowCollectionPadding: false })
 }
 
 export function readMap(root, implementation) {
@@ -732,7 +758,7 @@ export function updateMap(root, config, records, implementation, changes, write 
     const descriptor = fs.openSync(temporary, 'wx', 0o600)
     temporaryPath = temporary
     try {
-      fs.writeFileSync(descriptor, stringify(prepared.map), 'utf8')
+      fs.writeFileSync(descriptor, serializeMap(prepared.map), 'utf8')
       fs.fsyncSync(descriptor)
     } finally {
       fs.closeSync(descriptor)

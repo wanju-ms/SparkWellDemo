@@ -538,6 +538,121 @@ test('map writes are targeted, sorted, idempotent, and do not change code', cont
   assert.deepEqual(fs.readdirSync(path.join(fixture.root, tools.MAP_DIRECTORY)), ['client.yaml'])
 })
 
+test('grouped map YAML combines complete source sets and preserves special paths and repeat-write bytes', context => {
+  const fixture = mapProject(context)
+  const specialPath = `src/web/client/${'nested-'.repeat(10)}folder/[draft], {details} #1.ts`
+  fixture.write(specialPath, 'special path code\n')
+  const changes = { upsert: [
+    fixture.record(),
+    fixture.record(specialPath, ['todo-item', 'todo-service']),
+    fixture.record('src/web/client/other.js', ['other-service']),
+  ] }
+  const result = fixture.update(changes, true)
+  const filename = tools.mapPath(fixture.root, 'client')
+  const text = fs.readFileSync(filename, 'utf8')
+  assert.equal(result.written, true)
+  assert.deepEqual(tools.parseYaml(text, filename), {
+    'schema-version': 2,
+    'implementation-id': 'client',
+    artifacts: [
+      { 'derived-from': ['other-service'], paths: ['src/web/client/other.js'] },
+      { 'derived-from': ['todo-item', 'todo-service'], paths: [specialPath, 'src/web/client/todo.js'].sort() },
+    ],
+  })
+  assert.match(text, /  - derived-from: \[todo-item, todo-service\]\n    paths:/)
+  assert.deepEqual(fixture.stored(), result.map)
+  assert.equal(result.map['schema-version'], 1)
+  const repeated = fixture.update(changes, true)
+  assert.equal(repeated.changed, false)
+  assert.equal(repeated.written, false)
+  assert.equal(fs.readFileSync(filename, 'utf8'), text)
+})
+
+test('grouped map YAML accepts legacy block and flow formats without rewriting semantic no-ops', context => {
+  const fixture = mapProject(context)
+  const legacyMap = {
+    'schema-version': 1,
+    'implementation-id': 'client',
+    artifacts: [fixture.record('src/web/client/todo.js', ['todo-item', 'todo-service'])],
+  }
+  for (const legacyText of [stringify(legacyMap), stringify(legacyMap, { collectionStyle: 'flow' })]) {
+    const filename = fixture.write(`${tools.MAP_DIRECTORY}/client.yaml`, legacyText)
+    assert.deepEqual(fixture.stored(), legacyMap)
+    const unchanged = fixture.update({ upsert: [fixture.record()] }, true)
+    assert.equal(unchanged.changed, false)
+    assert.equal(unchanged.written, false)
+    assert.equal(fs.readFileSync(filename, 'utf8'), legacyText)
+
+    const changes = { upsert: [fixture.record('src/web/client/other.js', ['other-service'])] }
+    const preview = fixture.update(changes)
+    assert.equal(preview.changed, true)
+    assert.equal(preview.written, false)
+    assert.equal(fs.readFileSync(filename, 'utf8'), legacyText)
+    const updated = fixture.update(changes, true)
+    assert.deepEqual(updated.map, preview.map)
+    const text = fs.readFileSync(filename, 'utf8')
+    assert.equal(tools.parseYaml(text, filename)['schema-version'], 2)
+    assert.deepEqual(fixture.stored(), updated.map)
+    assert.equal(fixture.update(changes, true).written, false)
+    assert.equal(fs.readFileSync(filename, 'utf8'), text)
+  }
+})
+
+test('grouped map updates move and remove individual paths without changing their former peers', context => {
+  const fixture = mapProject(context)
+  fixture.update({ upsert: [fixture.record(), fixture.record('src/web/client/other.js')] }, true)
+  const filename = tools.mapPath(fixture.root, 'client')
+  assert.equal(tools.parseYaml(fs.readFileSync(filename, 'utf8'), filename).artifacts.length, 1)
+  fixture.update({ upsert: [fixture.record('src/web/client/todo.js', ['other-service'])] }, true)
+  assert.deepEqual(fixture.stored().artifacts, [
+    fixture.record('src/web/client/other.js', ['todo-item', 'todo-service']),
+    fixture.record('src/web/client/todo.js', ['other-service']),
+  ])
+  const filtered = fixture.cli(['map', 'show', '--source', 'todo-item'])
+  assert.equal(filtered.exitCode, 0)
+  assert.deepEqual(filtered.result.maps[0].map.artifacts, [fixture.record('src/web/client/other.js', ['todo-item', 'todo-service'])])
+  fixture.update({ remove: ['src/web/client/todo.js'] }, true)
+  assert.deepEqual(fixture.stored().artifacts, [fixture.record('src/web/client/other.js', ['todo-item', 'todo-service'])])
+  fixture.update({ remove: ['src/web/client/other.js'] }, true)
+  assert.deepEqual(tools.parseYaml(fs.readFileSync(filename, 'utf8'), filename).artifacts, [])
+  assert.equal(fixture.cli(['map', 'check']).exitCode, 0)
+})
+
+test('grouped map validation rejects malformed groups and duplicate or unsafe paths', context => {
+  const fixture = mapProject(context)
+  const group = { 'derived-from': ['todo-item'], paths: ['src/web/client/todo.js'] }
+  const cases = [
+    [[{ ...group, paths: [] }], 'invalid-list'],
+    [[{ ...group, paths: null }], 'invalid-list'],
+    [[{ ...group, paths: 'src/web/client/todo.js' }], 'invalid-list'],
+    [[{ ...group, paths: ['src/web/client/todo.js', 'src/web/client/todo.js'] }], 'duplicate-values'],
+    [[{ ...group, paths: ['src/web/client/todo.js', 'src/web/client/./todo.js'] }], 'duplicate-output'],
+    [[group, { ...group, 'derived-from': ['other-service'] }], 'duplicate-output'],
+    [[{ ...group, 'derived-from': [] }], 'invalid-list'],
+    [[{ ...group, 'derived-from': ['todo-item', 'todo-item'] }], 'duplicate-values'],
+    [[{ ...group, paths: ['src/web/client/todo.js', '../outside.js'] }], 'unsafe-path'],
+    [[{ ...group, path: 'src/web/client/todo.js' }], 'invalid-fields'],
+    [[fixture.record()], 'invalid-fields'],
+  ]
+  for (const [artifacts, code] of cases) {
+    fixture.write(`${tools.MAP_DIRECTORY}/client.yaml`, stringify({
+      'schema-version': 2, 'implementation-id': 'client', artifacts,
+    }))
+    errorCode(code, () => tools.readMap(fixture.root, 'client'))
+  }
+})
+
+test('grouped map changes still require single-file upserts', context => {
+  const fixture = mapProject(context)
+  fixture.update({ upsert: [fixture.record()] }, true)
+  const filename = tools.mapPath(fixture.root, 'client')
+  const before = fs.readFileSync(filename)
+  errorCode('invalid-fields', () => fixture.update({
+    upsert: [{ paths: ['src/web/client/todo.js'], 'derived-from': ['other-service'] }],
+  }, true))
+  assert.deepEqual(fs.readFileSync(filename), before)
+})
+
 test('removing a mapping does not remove the output file', context => {
   const fixture = mapProject(context)
   fixture.update({ upsert: [fixture.record()] }, true)

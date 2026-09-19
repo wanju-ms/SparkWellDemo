@@ -1,13 +1,7 @@
-schema-version: 1
+schema-version: 2
 implementation-id: ios-client
 artifacts:
-  - path: src/ios/client/Sources/TodoClient/TodoClient.swift
-    derived-from:
-      - todo-expiration-sync
-      - todo-item
-      - todo-service
-  - path: src/ios/client/Tests/TodoClientTests/TodoClientTests.swift
-    derived-from:
-      - todo-expiration-sync
-      - todo-item
-      - todo-service
+  - derived-from: [todo-expiration-sync, todo-item, todo-service]
+    paths:
+      - src/ios/client/Sources/TodoClient/TodoClient.swift
+      - src/ios/client/Tests/TodoClientTests/TodoClientTests.swift
